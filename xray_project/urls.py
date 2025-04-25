@@ -25,6 +25,15 @@ urlpatterns = [
     path('admin/dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('staff/dashboard/', views.staff_dashboard, name='staff_dashboard'),
     
+    path('admin/dashboard/', include([
+        path('',          views.admin_dashboard, name='admin_dashboard'),
+        path('stats/',    views.api_admin_stats, name='api_admin_stats'),
+    ])),
+    path('staff/dashboard/', include([
+        path('',          views.staff_dashboard, name='staff_dashboard'),
+        path('stats/',    views.api_staff_stats, name='api_staff_stats'),
+    ])),
+    
     path(
       'logout/',
       auth_views.LogoutView.as_view(next_page='landing'),
@@ -32,4 +41,5 @@ urlpatterns = [
     ),
     path('employees/', include('employee.urls')),
     path('patients/', include('patient.urls')),
+    path('diagnosis/', include('diagnosis.urls')),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'xray_app',
     'employee',
     'patient',
+    'diagnosis',
     
     # Third-party apps
     'widget_tweaks',   

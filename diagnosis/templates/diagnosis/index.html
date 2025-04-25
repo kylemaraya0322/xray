@@ -1,0 +1,144 @@
+{% extends 'dashboard_base.html' %}
+{% block content %}
+<div class="p-6 space-y-6">
+
+  <!-- HEADER -->
+  <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-3xl font-semibold text-white">AI Diagnosis</h1>
+      <p class="text-gray-400 mt-1">Upload an X-ray and get instant results</p>
+    </div>
+    <div class="relative w-full md:w-64">
+      <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+        <i class="fas fa-search"></i>
+      </span>
+      <input
+        id="searchInput"
+        type="text"
+        placeholder="Search patients..."
+        onkeyup="filterTable()"
+        class="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-700 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
+      />
+    </div>
+  </div>
+
+  <!-- PATIENTS TABLE -->
+  <div class="bg-gray-900 rounded-lg shadow overflow-x-auto">
+    <div class="max-h-[60vh] overflow-y-auto">
+      <table class="min-w-full table-fixed text-gray-200">
+        <thead class="bg-gray-800 sticky top-0">
+          <tr>
+            <th class="w-3/12 px-4 py-3 text-xs font-semibold uppercase">Name</th>
+            <th class="w-1/12 px-4 py-3 text-xs font-semibold uppercase">Age</th>
+            <th class="w-1/12 px-4 py-3 text-xs font-semibold uppercase">Gender</th>
+            <th class="w-2/12 px-4 py-3 text-xs font-semibold uppercase">Diagnosis</th>
+            <th class="w-2/12 px-4 py-3 text-center text-xs font-semibold uppercase">Action</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody" class="bg-gray-700 divide-y divide-gray-600">
+          {% for pat in patients %}
+          <tr class="hover:bg-gray-600 transition">
+            <td class="px-4 py-3 whitespace-nowrap truncate">
+              {{ pat.first_name }}{% if pat.middle_name %} {{ pat.middle_name }}{% endif %} {{ pat.last_name }}
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap">{{ pat.age }}</td>
+            <td class="px-4 py-3 whitespace-nowrap">{{ pat.get_gender_display }}</td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              <span class="px-2 py-1 text-xs rounded-full font-medium
+                {% if pat.diagnosis == 'Pending'     %}bg-gray-500 text-white{% endif %}
+                {% if pat.diagnosis == 'No Findings' %}bg-green-600 text-white{% endif %}
+                {% if pat.diagnosis == 'PTB'         %}bg-red-600 text-white{% endif %}">
+                {{ pat.diagnosis }}
+              </span>
+            </td>
+            <td class="px-4 py-3 text-center">
+              <button
+                onclick="toggleModal('modal-dx-{{ pat.id }}')"
+                class="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg transition"
+              >
+                Initiate Diagnose
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- DIAGNOSIS MODALS -->
+{% for pat in patients %}
+<div
+  id="modal-dx-{{ pat.id }}"
+  class="fixed inset-0 hidden items-center justify-center bg-black bg-opacity-50 z-50"
+>
+  <div class="bg-gray-800 rounded-lg w-full max-w-lg p-6 shadow-xl space-y-6">
+    <!-- Modal Header -->
+    <div class="flex justify-between items-center">
+      <h2 class="text-2xl font-semibold text-white">Diagnose Patient</h2>
+      <button
+        onclick="toggleModal('modal-dx-{{ pat.id }}')"
+        class="text-gray-400 hover:text-gray-200"
+        aria-label="Close"
+      >
+        <i class="fas fa-times fa-lg"></i>
+      </button>
+    </div>
+
+    <!-- Patient Info -->
+    <div class="grid grid-cols-2 gap-4 text-gray-200">
+      <div><strong>Name:</strong> {{ pat.first_name }}{% if pat.middle_name %} {{ pat.middle_name }}{% endif %} {{ pat.last_name }}</div>
+      <div><strong>Age:</strong> {{ pat.age }}</div>
+      <div><strong>Gender:</strong> {{ pat.get_gender_display }}</div>
+      <div><strong>Current:</strong> {{ pat.diagnosis }}</div>
+    </div>
+
+    <!-- Upload & Diagnose Form -->
+    <form method="post" enctype="multipart/form-data" class="space-y-4">
+      {% csrf_token %}
+      <input type="hidden" name="diagnose_patient" value="1"/>
+      <input type="hidden" name="patient_id"     value="{{ pat.id }}"/>
+
+      <label for="{{ pat.form.xray_image.id_for_label }}" class="block text-gray-300">
+        Chest X-ray Image
+      </label>
+      {{ pat.form.xray_image }}
+      {% if pat.form.xray_image.errors %}
+        <p class="text-red-500 text-sm mt-1">{{ pat.form.xray_image.errors }}</p>
+      {% endif %}
+
+      <div class="flex justify-end space-x-3 mt-4">
+        <button
+          type="button"
+          onclick="toggleModal('modal-dx-{{ pat.id }}')"
+          class="px-4 py-2 bg-gray-700 text-gray-200 rounded-lg hover:bg-gray-600 transition"
+        >Cancel</button>
+        <button
+          type="submit"
+          class="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition"
+        >Diagnose</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endfor %}
+
+<script>
+// Toggle modal visibility
+function toggleModal(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('hidden');
+  el.classList.toggle('flex');
+}
+
+// Live-search filter
+function filterTable() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  document.querySelectorAll('#tableBody tr').forEach(row => {
+    row.classList.toggle('hidden', !row.textContent.toLowerCase().includes(q));
+  });
+}
+</script>
+{% endblock %}
