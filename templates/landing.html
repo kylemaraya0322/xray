@@ -1,0 +1,165 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TB Portal</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Use Inter font */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 min-h-screen flex flex-col">
+
+  <main class="flex flex-1 items-center justify-center px-4">
+    <div class="relative max-w-md w-full">
+      <!-- Decorative overlay -->
+      <div class="absolute inset-0 bg-green-600 opacity-20 rounded-3xl filter blur-3xl"></div>
+
+      <div class="relative bg-gray-800/60 backdrop-blur-lg rounded-3xl shadow-xl p-8 space-y-6">
+        <!-- Logo -->
+        <div class="flex justify-center">
+          <img src="{% static 'images/blessed.svg' %}" alt="Clinic Logo" class="w-24 h-24 rounded-full border-4 border-green-500" />
+        </div>
+
+        <h1 class="text-center text-3xl font-bold text-white">TB PORTAL</h1>
+        <p class="text-center text-gray-300">Welcome! Please select your role below.</p>
+
+        {% if role == 'admin' %}
+        <!-- Admin Login Form -->
+        <form id="admin-login-form" class="login-form space-y-4" method="post" action="{% url 'admin_login' %}" novalidate>
+          {% csrf_token %}
+          <!-- add this hidden field: -->
+          <input type="hidden" name="next" value="{% url 'admin_dashboard' %}">
+          {% if form.non_field_errors %}
+          <div class="text-red-400 text-sm mb-2">
+            {% for err in form.non_field_errors %}
+              <p>{{ err }}</p>
+            {% endfor %}
+          </div>
+          {% endif %}
+          <div>
+            <input name="username" type="text" placeholder="Username" value="{{ form.username.value|default_if_none:'' }}" required autofocus
+                   class="w-full px-4 py-2 rounded-xl bg-gray-900 border border-gray-700 text-gray-100 focus:border-green-500 focus:ring-2 focus:ring-green-500" />
+            <p class="username-error text-red-400 text-sm mt-1">
+              {% for err in form.username.errors %}{{ err }}{% endfor %}
+            </p>
+          </div>
+          <div>
+            <input name="password" type="password" placeholder="Password" required
+                   class="w-full px-4 py-2 rounded-xl bg-gray-900 border border-gray-700 text-gray-100 focus:border-green-500 focus:ring-2 focus:ring-green-500" />
+            <p class="capslock-warning text-yellow-400 text-sm mt-1 hidden">Caps Lock is on</p>
+            <p class="password-error text-red-400 text-sm mt-1">
+              {% for err in form.password.errors %}{{ err }}{% endfor %}
+            </p>
+          </div>
+          <button type="submit" class="w-full py-3 rounded-xl bg-green-500 hover:bg-green-600 transition">Login as Admin</button>
+        </form>
+        <div class="text-center">
+          <a href="{% url 'landing' %}" class="text-sm text-gray-400 hover:text-gray-200">← Back to selection</a>
+        </div>
+
+        {% elif role == 'staff' %}
+        <!-- Staff Login Form -->
+        <form id="staff-login-form" class="login-form space-y-4" method="post" action="{% url 'staff_login' %}" novalidate>
+          {% csrf_token %}
+          <!-- add this hidden field: -->
+          <input type="hidden" name="next" value="{% url 'staff_dashboard' %}">
+          {% if form.non_field_errors %}
+          <div class="text-red-400 text-sm mb-2">
+            {% for err in form.non_field_errors %}
+              <p>{{ err }}</p>
+            {% endfor %}
+          </div>
+          {% endif %}
+          <div>
+            <input name="username" type="text" placeholder="Username" value="{{ form.username.value|default_if_none:'' }}" required autofocus
+                   class="w-full px-4 py-2 rounded-xl bg-gray-900 border border-gray-700 text-gray-100 focus:border-green-500 focus:ring-2 focus:ring-green-500" />
+            <p class="username-error text-red-400 text-sm mt-1">
+              {% for err in form.username.errors %}{{ err }}{% endfor %}
+            </p>
+          </div>
+          <div>
+            <input name="password" type="password" placeholder="Password" required
+                   class="w-full px-4 py-2 rounded-xl bg-gray-900 border border-gray-700 text-gray-100 focus:border-green-500 focus:ring-2 focus:ring-green-500" />
+            <p class="capslock-warning text-yellow-400 text-sm mt-1 hidden">Caps Lock is on</p>
+            <p class="password-error text-red-400 text-sm mt-1">
+              {% for err in form.password.errors %}{{ err }}{% endfor %}
+            </p>
+          </div>
+          <button type="submit" class="w-full py-3 rounded-xl bg-green-500 hover:bg-green-600 transition">Login as Staff</button>
+        </form>
+        <div class="text-center">
+          <a href="{% url 'landing' %}" class="text-sm text-gray-400 hover:text-gray-200">← Back to selection</a>
+        </div>
+
+        {% else %}
+        <!-- Role Selection -->
+        <div class="grid grid-cols-2 gap-4">
+          <a href="?role=admin" class="block py-3 text-center rounded-xl bg-green-500 hover:bg-green-600 transition">Admin</a>
+          <a href="?role=staff" class="block py-3 text-center rounded-xl bg-green-500 hover:bg-green-600 transition">Staff</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </main>
+
+  <footer class="py-4 text-center text-gray-400 text-sm">
+    &copy; {% now "Y" %} ProHealth Suite. All rights reserved.
+  </footer>
+
+  <!-- Client-side validation & CapsLock detection -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Validation for both forms
+      document.querySelectorAll('.login-form').forEach(form => {
+        form.addEventListener('submit', e => {
+          let valid = true;
+          const usernameInput = form.querySelector('input[name="username"]');
+          const passwordInput = form.querySelector('input[name="password"]');
+          const userError = form.querySelector('.username-error');
+          const passError = form.querySelector('.password-error');
+
+          // Reset errors
+          [userError, passError].forEach(el => {
+            el.textContent = '';
+            el.classList.add('hidden');
+          });
+
+          // Username: at least 3 chars
+          if (usernameInput.value.trim().length < 3) {
+            userError.textContent = 'Username must be at least 3 characters.';
+            userError.classList.remove('hidden');
+            valid = false;
+          }
+
+          // Password: at least 6 chars
+          if (passwordInput.value.trim().length < 6) {
+            passError.textContent = 'Password must be at least 6 characters.';
+            passError.classList.remove('hidden');
+            valid = false;
+          }
+
+          if (!valid) e.preventDefault();
+        });
+      });
+
+      // CapsLock detection
+      document.querySelectorAll('input[type="password"]').forEach(input => {
+        const warning = input.parentElement.querySelector('.capslock-warning');
+        input.addEventListener('keyup', e => {
+          if (e.getModifierState && e.getModifierState('CapsLock')) {
+            warning.classList.remove('hidden');
+          } else {
+            warning.classList.add('hidden');
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

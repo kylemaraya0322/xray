@@ -1,0 +1,186 @@
+
+
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Dashboard{% endblock %}</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* Custom smooth transitions */
+    .sidebar-transition {
+      transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .menu-text {
+      transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+      transform-origin: left center;
+      display: inline-block;
+      white-space: nowrap;
+    }
+    .collapsed .menu-text {
+      opacity: 0;
+      transform: translateX(-10px) scale(0.95);
+      width: 0;
+      overflow: hidden;
+    }
+    .expanded .menu-text {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+      width: auto;
+    }
+    /* Smooth logo text transition */
+    #logo-text {
+      transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+      display: inline-block;
+      white-space: nowrap;
+    }
+    .collapsed #logo-text {
+      opacity: 0;
+      transform: translateX(-10px);
+      width: 0;
+    }
+  </style>
+</head>
+<body class="flex h-screen">
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="bg-gray-800 text-gray-100 flex flex-col sidebar-transition w-64 overflow-hidden">
+    <!-- Header: Logo Icon, Name, and Toggle -->
+    <div class="flex items-center justify-between h-16 border-b border-gray-700 px-4">
+      <div id="logoContainer" class="flex items-center">
+        <img src="{% static 'images/blessed.svg' %}" alt="ProHealth Logo" class="h-12 w-12 mr-2 transition-all duration-300" />
+        <span id="logo-text" class="text-lg font-semibold expanded">ProHealth Suite</span>
+      </div>
+      <button id="collapseBtn" class="focus:outline-none text-gray-400 hover:text-white">
+        <i class="fas fa-bars text-xl"></i>
+      </button>
+      <button id="expandBtn" class="hidden focus:outline-none">
+        <img src="{% static 'images/blessed.svg' %}" alt="ProHealth Logo" class="h-12 w-12" />
+      </button>
+    </div>
+
+    <!-- Menu -->
+<nav class="flex-1 px-2 py-4 space-y-2 overflow-fixed">
+  
+    {# pre-build both URLs once #}
+    {% url 'admin_dashboard' as admin_url %}
+    {% url 'staff_dashboard' as staff_url %}
+  
+    <a
+      href="{% if user.is_superuser %}{{ admin_url }}{% elif user.is_staff %}{{ staff_url }}{% else %}{% url 'login' %}{% endif %}"
+      class="flex items-center space-x-2 p-5 rounded-md
+        {% if active_page == 'dashboard' %}bg-green-500 text-white{% else %}hover:bg-gray-700{% endif %}"
+    >
+      <i class="fas fa-home text-xl w-12 flex-shrink-0"></i>
+      <span class="menu-text expanded">Dashboard</span>
+    </a>
+  </>
+  
+
+  <a href="{% url 'employee_list' %}" class="flex items-center space-x-2 p-5 rounded-md
+    {% if active_page == 'employees' %}bg-green-500 text-white{% else %}hover:bg-gray-700{% endif %}">
+    <i class="fas fa-user-md text-xl w-12 flex-shrink-0"></i>
+    <span class="menu-text expanded">Employee</span>
+  </a>
+
+  <a href="{% url 'patient_list' %}"
+   class="flex items-center space-x-2 p-5 rounded-md
+     {% if active_page == 'patients' %}bg-green-500 text-white{% else %}hover:bg-gray-700{% endif %}">
+  <i class="fas fa-user-plus text-xl w-12 flex-shrink-0"></i>
+  <span class="menu-text expanded">Add Patient</span>
+  </a>
+
+
+
+  <a href="#" class="flex items-center space-x-2 p-5 rounded-md hover:bg-gray-700">
+    <i class="fas fa-robot text-xl w-12 flex-shrink-0"></i>
+    <span class="menu-text expanded">AI Diagnosis</span>
+  </a>
+
+  <a href="#" class="flex items-center space-x-2 p-5 rounded-md hover:bg-gray-700">
+    <i class="fas fa-cog text-xl w-12 flex-shrink-0"></i>
+    <span class="menu-text expanded">Settings</span>
+  </a>
+</nav>
+
+
+    <!-- Logout -->
+    <div class="px-2 py-5 border-t border-gray-700">
+      {% if user.is_authenticated %}
+      <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="w-full flex items-center px-3 py-2 rounded hover:bg-gray-700">
+          <i class="fas fa-sign-out-alt text-xl w-10 flex-shrink-0 text-gray-400"></i>
+          <span class="menu-text expanded ml-6">Logout</span>
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </aside>
+
+  <!-- Content area -->
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header class="bg-white shadow p-4">
+  <div class="flex items-center w-full">
+    <!-- left spacer -->
+    <div class="flex-1"></div>
+    <!-- center title -->
+    <h1 class="text-xl font-semibold text-gray-800 flex-1 text-center">
+      {% block header_title %}Dashboard{% endblock %}
+    </h1>
+    <!-- right timestamp -->
+    <div class="flex-1 flex justify-end items-center text-gray-600 text-sm">
+      <i class="fas fa-clock mr-2"></i>
+      <span id="currentTime" class="font-medium text-gray-800"></span>
+    </div>
+  </div>
+</header>
+    <main class="flex-grow p-6 overflow-auto">
+      {% block content %}{% endblock %}
+    </main>
+    <footer class="bg-white shadow py-4 text-center text-sm text-gray-600">
+      &copy; {% now "Y" %} ProHealth Suite. All rights reserved.
+    </footer>
+  </div>
+
+  <!-- Toggle & Clock Script -->
+  <script>
+    // Sidebar toggle
+    const collapseBtn = document.getElementById('collapseBtn');
+    const expandBtn = document.getElementById('expandBtn');
+    const sidebar = document.getElementById('sidebar');
+    const textElements = document.querySelectorAll('.menu-text');
+    const logoText = document.getElementById('logo-text');
+
+    collapseBtn.addEventListener('click', () => {
+      sidebar.classList.replace('w-64', 'w-20');
+      textElements.forEach(el => el.classList.replace('expanded', 'collapsed'));
+      logoText.classList.replace('expanded', 'collapsed');
+      collapseBtn.classList.add('hidden'); expandBtn.classList.remove('hidden');
+      document.getElementById('logoContainer').classList.add('hidden');
+    });
+    expandBtn.addEventListener('click', () => {
+      sidebar.classList.replace('w-20', 'w-64');
+      textElements.forEach(el => el.classList.replace('collapsed', 'expanded'));
+      logoText.classList.replace('collapsed', 'expanded');
+      document.getElementById('logoContainer').classList.remove('hidden'); expandBtn.classList.add('hidden'); collapseBtn.classList.remove('hidden');
+    });
+
+    // Real-time clock
+    function updateTime() {
+      const now = new Date();
+      const options = { year: 'numeric', month: '2-digit', day: '2-digit',
+                        hour: '2-digit', minute: '2-digit', second: '2-digit' };
+      document.getElementById('currentTime').textContent = now.toLocaleString('en-PH', options);
+    }
+    updateTime();
+    setInterval(updateTime, 1000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,233 @@
+{% extends 'dashboard_base.html' %}
+{% block content %}
+<div class="p-8 space-y-8">
+
+  <!-- HEADER -->
+  <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-4xl font-bold text-white">Employees</h1>
+      <p class="text-gray-400 mt-2">Manage your workforce effectively</p>
+    </div>
+    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
+      <!-- Search -->
+      <div class="relative w-full sm:w-64">
+        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+          <i class="fas fa-search"></i>
+        </span>
+        <input
+          id="searchInput"
+          type="text"
+          placeholder="Search employees..."
+          onkeyup="filterTable()"
+          class="w-full pl-10 pr-4 py-3 rounded-lg bg-gray-700 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-400 transition"
+        />
+      </div>
+      <!-- Add Button -->
+      <button
+        onclick="openModal('modal-create')"
+        class="inline-flex items-center space-x-2 bg-teal-500 hover:bg-teal-600 text-white font-semibold px-6 py-3 rounded-lg shadow-md transition"
+      >
+        <i class="fas fa-user-plus"></i>
+        <span>Add Employee</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- CREATE MODAL -->
+  <div id="modal-create" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 opacity-0 pointer-events-none transition-opacity">
+    <div class="relative bg-gray-800 rounded-2xl w-full max-w-2xl p-8 shadow-2xl transform scale-95 opacity-0 transition-all duration-200">
+      <button
+        onclick="closeModal('modal-create')"
+        class="absolute top-4 right-4 text-gray-400 hover:text-gray-200 text-xl"
+        title="Close"
+      >
+        <i class="fas fa-times"></i>
+      </button>
+      <h2 class="text-3xl font-semibold text-white mb-6">New Employee</h2>
+      <form method="post" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% csrf_token %}
+        <input type="hidden" name="create_employee" value="1">
+        {% for field in create_form.visible_fields %}
+          <div class="flex flex-col">
+            <label for="{{ field.id_for_label }}" class="text-gray-300 mb-2">{{ field.label }}</label>
+            {{ field|safe }}
+            {% if field.errors %}
+              <p class="text-red-500 text-sm mt-1">{{ field.errors }}</p>
+            {% endif %}
+          </div>
+        {% endfor %}
+        <div class="md:col-span-2 flex justify-end space-x-4 mt-4">
+          <button
+            type="button"
+            onclick="closeModal('modal-create')"
+            class="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition"
+          >Cancel</button>
+          <button
+            type="submit"
+            class="px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
+          >Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- EMPLOYEES TABLE -->
+  <div class="bg-gray-900 rounded-2xl shadow-lg overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full table-auto text-gray-200">
+        <thead class="bg-gray-800">
+          <tr>
+            <th class="px-6 py-4 text-xs font-medium uppercase">ID</th>
+            <th class="px-6 py-4 text-xs font-medium uppercase">Photo</th>
+            <th class="px-6 py-4 text-xs font-medium uppercase">Full Name</th>
+            <th class="px-6 py-4 text-xs font-medium uppercase">Email</th>
+            <th class="px-6 py-4 text-xs font-medium uppercase">Contact</th>
+            <th class="px-6 py-4 text-xs font-medium uppercase">Position</th>
+            <th class="px-6 py-4 text-xs font-medium uppercase">Department</th>
+            <th class="px-6 py-4 text-xs font-medium uppercase">Status</th>
+            <th class="px-6 py-4 text-center text-xs font-medium uppercase">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-700">
+          {% for emp in employees %}
+          <tr class="bg-gray-700 hover:bg-gray-600 transition">
+            <td class="px-6 py-4 whitespace-nowrap">{{ emp.employee_id }}</td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              {% if emp.photo %}
+                <img src="{{ emp.photo.url }}" class="h-10 w-10 rounded-full object-cover" alt="">
+              {% else %}
+                <div class="h-10 w-10 rounded-full bg-gray-600 flex items-center justify-center text-gray-400">
+                  <i class="fas fa-user"></i>
+                </div>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap truncate">
+              {{ emp.first_name }}{% if emp.middle_name %} {{ emp.middle_name }}{% endif %} {{ emp.last_name }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap truncate">{{ emp.email }}</td>
+            <td class="px-6 py-4 whitespace-nowrap truncate">{{ emp.contact_number }}</td>
+            <td class="px-6 py-4 whitespace-nowrap truncate">{{ emp.position }}</td>
+            <td class="px-6 py-4 whitespace-nowrap truncate">{{ emp.department }}</td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="px-3 py-1 text-xs rounded-full font-medium
+                {% if emp.status == 'On Duty' %}bg-green-600 text-white{% endif %}
+                {% if emp.status == 'On Leave' %}bg-yellow-500 text-gray-900{% endif %}
+                {% if emp.status == 'Absent'   %}bg-red-600 text-white{% endif %}">
+                {{ emp.status }}
+              </span>
+            </td>
+            <td class="px-6 py-4 text-center flex justify-center space-x-3">
+              <button
+                onclick="openModal('modal-edit-{{ emp.id }}')"
+                class="p-2 bg-gray-700 hover:bg-gray-600 rounded transition"
+                title="Edit"
+              >
+                <i class="fas fa-edit text-yellow-400 hover:text-yellow-200"></i>
+              </button>
+              <button
+                onclick="openModal('modal-delete-{{ emp.id }}')"
+                class="p-2 bg-gray-700 hover:bg-gray-600 rounded transition"
+                title="Delete"
+              >
+                <i class="fas fa-trash-alt text-red-400 hover:text-red-200"></i>
+              </button>
+            </td>
+          </tr>
+
+          <!-- EDIT MODAL -->
+          <div id="modal-edit-{{ emp.id }}" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 opacity-0 pointer-events-none transition-opacity">
+            <div class="relative bg-gray-800 rounded-2xl w-full max-w-2xl p-8 shadow-2xl transform scale-95 opacity-0 transition-all duration-200">
+              <button
+                onclick="closeModal('modal-edit-{{ emp.id }}')"
+                class="absolute top-4 right-4 text-gray-400 hover:text-gray-200 text-xl"
+                title="Close"
+              >
+                <i class="fas fa-times"></i>
+              </button>
+              <h2 class="text-3xl font-semibold text-white mb-6">Edit {{ emp.first_name }}</h2>
+              <form method="post" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% csrf_token %}
+                <input type="hidden" name="edit_employee" value="1">
+                <input type="hidden" name="employee_id" value="{{ emp.id }}">
+                {% for field in emp.form.visible_fields %}
+                <div class="flex flex-col">
+                  <label for="{{ field.id_for_label }}" class="text-gray-300 mb-2">{{ field.label }}</label>
+                  {{ field|safe }}
+                  {% if field.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ field.errors }}</p>
+                  {% endif %}
+                </div>
+                {% endfor %}
+                <div class="md:col-span-2 flex justify-end space-x-4 mt-4">
+                  <button
+                    type="button"
+                    onclick="closeModal('modal-edit-{{ emp.id }}')"
+                    class="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition"
+                  >Cancel</button>
+                  <button
+                    type="submit"
+                    class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                  >Update</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- DELETE MODAL -->
+          <div id="modal-delete-{{ emp.id }}" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 opacity-0 pointer-events-none transition-opacity">
+            <div class="relative bg-gray-800 rounded-2xl w-96 p-8 shadow-2xl transform scale-95 opacity-0 transition-all duration-200">
+              <button
+                onclick="closeModal('modal-delete-{{ emp.id }}')"
+                class="absolute top-4 right-4 text-gray-400 hover:text-gray-200 text-xl"
+                title="Close"
+              >
+                <i class="fas fa-times"></i>
+              </button>
+              <h2 class="text-2xl font-semibold text-white mb-4">Delete {{ emp }}</h2>
+              <p class="text-gray-300 mb-6">Are you sure you want to remove this employee?</p>
+              <form method="post" class="flex justify-end space-x-4">
+                {% csrf_token %}
+                <input type="hidden" name="delete_employee" value="1">
+                <input type="hidden" name="employee_id" value="{{ emp.id }}">
+                <button
+                  type="button"
+                  onclick="closeModal('modal-delete-{{ emp.id }}')"
+                  class="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition"
+                >Cancel</button>
+                <button
+                  type="submit"
+                  class="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                >Delete</button>
+              </form>
+            </div>
+          </div>
+
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Modal open/close with animations
+  function openModal(id) {
+    const modal = document.getElementById(id);
+    modal.classList.remove('pointer-events-none', 'opacity-0');
+    setTimeout(() => modal.firstElementChild.classList.remove('scale-95','opacity-0'), 10);
+  }
+  function closeModal(id) {
+    const modal = document.getElementById(id);
+    modal.firstElementChild.classList.add('scale-95','opacity-0');
+    setTimeout(() => modal.classList.add('pointer-events-none','opacity-0'), 200);
+  }
+  // Live-search filter
+  function filterTable() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    document.querySelectorAll('tbody tr').forEach(row => {
+      row.classList.toggle('hidden', !row.textContent.toLowerCase().includes(q));
+    });
+  }
+</script>
+{% endblock %}
