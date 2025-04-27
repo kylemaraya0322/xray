@@ -1,96 +1,16 @@
-{% extends 'dashboard_base.html' %}
+{% extends "dashboard_base.html" %}
+{% block title %}Staff Dashboard{% endblock %}
+{% block header_title %}Staff Dashboard{% endblock %}
+
 {% block content %}
-<div class="p-6 space-y-6">
-
-  <!-- METRIC CARDS -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-    <!-- Pending -->
-    <div class="bg-gray-800 p-5 rounded-lg shadow flex items-center">
-      <i class="fas fa-user-clock text-3xl text-yellow-400"></i>
-      <div class="ml-4">
-        <p id="staffPending" class="text-2xl font-semibold">–</p>
-        <p class="text-gray-400">Your Pending</p>
-      </div>
-    </div>
-    <!-- Completed -->
-    <div class="bg-gray-800 p-5 rounded-lg shadow flex items-center">
-      <i class="fas fa-check-circle text-3xl text-green-400"></i>
-      <div class="ml-4">
-        <p id="staffCompleted" class="text-2xl font-semibold">–</p>
-        <p class="text-gray-400">Your Completed</p>
-      </div>
-    </div>
-    <!-- New This Week -->
-    <div class="bg-gray-800 p-5 rounded-lg shadow flex items-center">
-      <i class="fas fa-user-plus text-3xl text-teal-400"></i>
-      <div class="ml-4">
-        <p id="staffNewWeek" class="text-2xl font-semibold">–</p>
-        <p class="text-gray-400">New Patients</p>
-      </div>
-    </div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+    <h3 class="text-lg font-semibold text-teal-400 mb-2">Upload X-ray</h3>
+    <p class="text-white">Submit new patient image for diagnosis.</p>
   </div>
-
-  <!-- MY PENDING TABLE -->
-  <div class="bg-gray-800 p-5 rounded-lg shadow">
-    <h2 class="text-xl font-semibold text-white mb-4">My Pending Diagnoses</h2>
-    <div class="overflow-x-auto">
-      <table class="min-w-full table-fixed text-gray-200">
-        <thead class="bg-gray-700">
-          <tr>
-            <th class="px-4 py-2 text-left">Name</th>
-            <th class="px-4 py-2 text-left">Age</th>
-            <th class="px-4 py-2 text-left">Gender</th>
-            <th class="px-4 py-2 text-center">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for pat in my_pending %}
-          <tr class="hover:bg-gray-700">
-            <td class="px-4 py-2">
-              {{ pat.first_name }}{% if pat.middle_name %} {{ pat.middle_name }}{% endif %} {{ pat.last_name }}
-            </td>
-            <td class="px-4 py-2">{{ pat.age }}</td>
-            <td class="px-4 py-2">{{ pat.get_gender_display }}</td>
-            <td class="px-4 py-2 text-center">
-              <button
-                onclick="openModal('modal-dx-{{ pat.id }}')"
-                class="bg-teal-500 hover:bg-teal-600 text-white px-3 py-1 rounded-lg transition"
-              >Diagnose</button>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+  <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+    <h3 class="text-lg font-semibold text-teal-400 mb-2">View Reports</h3>
+    <p class="text-white">Check past diagnoses and results.</p>
   </div>
-
 </div>
-
-<script>
-  const staffStatsUrl = "{% url 'api_staff_stats' %}";
-
-  async function fetchStaffStats() {
-    try {
-      const resp = await fetch(staffStatsUrl);
-      const data = await resp.json();
-
-      document.getElementById('staffPending').innerText   = data.pending_diagnoses;
-      document.getElementById('staffCompleted').innerText = data.completed_diagnoses;
-      document.getElementById('staffNewWeek').innerText   = data.new_patients_week;
-    } catch (e) {
-      console.error('Failed to load staff stats:', e);
-    }
-  }
-
-  // initial load
-  fetchStaffStats();
-  // refresh every 30 seconds
-  setInterval(fetchStaffStats, 30000);
-
-  // helper to open your existing diagnose modals
-  function openModal(id) {
-    document.getElementById(id).classList.remove('hidden');
-    document.getElementById(id).classList.add('flex');
-  }
-</script>
 {% endblock %}

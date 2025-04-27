@@ -1,12 +1,32 @@
 {% extends 'dashboard_base.html' %}
+{% load static percent_extras widget_tweaks %} 
+
 {% block content %}
 <div class="p-6 space-y-6">
+
+  {% if messages %}
+  <div
+    id="toast-container"
+    class="fixed inset-0 flex items-center justify-center backdrop-blur-sm z-50 pointer-events-none
+           opacity-100 transition-opacity duration-500"
+  >
+    {% for msg in messages %}
+      <div
+        class="toast max-w-md w-full px-6 py-3 bg-green-600 bg-opacity-80 text-white 
+               rounded-lg shadow-lg pointer-events-auto"
+      >
+        {{ msg }}
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
 
   <!-- HEADER -->
   <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
     <div>
       <h1 class="text-3xl font-semibold text-white">AI Diagnosis</h1>
-      <p class="text-gray-400 mt-1">Upload an X-ray and get instant results</p>
+      <p class="text-gray-400 mt-1">Upload an X-ray for PTB screening</p>
     </div>
     <div class="relative w-full md:w-64">
       <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
@@ -17,47 +37,43 @@
         type="text"
         placeholder="Search patients..."
         onkeyup="filterTable()"
-        class="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-700 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
+        class="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-700 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-400 transition-shadow shadow-sm"
       />
     </div>
   </div>
 
   <!-- PATIENTS TABLE -->
-  <div class="bg-gray-900 rounded-lg shadow overflow-x-auto">
+  <div class="bg-gray-900 rounded-lg shadow-lg overflow-x-auto">
     <div class="max-h-[60vh] overflow-y-auto">
-      <table class="min-w-full table-fixed text-gray-200">
+      <table class="min-w-full table-auto text-gray-200">
         <thead class="bg-gray-800 sticky top-0">
           <tr>
-            <th class="w-3/12 px-4 py-3 text-xs font-semibold uppercase">Name</th>
-            <th class="w-1/12 px-4 py-3 text-xs font-semibold uppercase">Age</th>
-            <th class="w-1/12 px-4 py-3 text-xs font-semibold uppercase">Gender</th>
-            <th class="w-2/12 px-4 py-3 text-xs font-semibold uppercase">Diagnosis</th>
-            <th class="w-2/12 px-4 py-3 text-center text-xs font-semibold uppercase">Action</th>
+            <th class="px-4 py-3 text-xs font-semibold uppercase">Name</th>
+            <th class="px-4 py-3 text-xs font-semibold uppercase">Age</th>
+            <th class="px-4 py-3 text-xs font-semibold uppercase">Gender</th>
+            <th class="px-4 py-3 text-xs font-semibold uppercase">Diagnosis</th>
+            <th class="px-4 py-3 text-center text-xs font-semibold uppercase">Action</th>
           </tr>
         </thead>
         <tbody id="tableBody" class="bg-gray-700 divide-y divide-gray-600">
           {% for pat in patients %}
-          <tr class="hover:bg-gray-600 transition">
-            <td class="px-4 py-3 whitespace-nowrap truncate">
-              {{ pat.first_name }}{% if pat.middle_name %} {{ pat.middle_name }}{% endif %} {{ pat.last_name }}
-            </td>
-            <td class="px-4 py-3 whitespace-nowrap">{{ pat.age }}</td>
-            <td class="px-4 py-3 whitespace-nowrap">{{ pat.get_gender_display }}</td>
-            <td class="px-4 py-3 whitespace-nowrap">
+          <tr class="hover:bg-gray-600 transition-colors duration-200">
+            <td class="px-4 py-3 truncate">{{ pat.first_name }}{% if pat.middle_name %} {{ pat.middle_name }}{% endif %} {{ pat.last_name }}</td>
+            <td class="px-4 py-3">{{ pat.age }}</td>
+            <td class="px-4 py-3">{{ pat.get_gender_display }}</td>
+            <td class="px-4 py-3">
               <span class="px-2 py-1 text-xs rounded-full font-medium
-                {% if pat.diagnosis == 'Pending'     %}bg-gray-500 text-white{% endif %}
                 {% if pat.diagnosis == 'No Findings' %}bg-green-600 text-white{% endif %}
-                {% if pat.diagnosis == 'PTB'         %}bg-red-600 text-white{% endif %}">
+                {% if pat.diagnosis == 'PTB'    %}bg-red-600   text-white{% endif %}
+                {% if pat.diagnosis == 'Pending'%}bg-gray-500 text-white{% endif %}">
                 {{ pat.diagnosis }}
               </span>
             </td>
             <td class="px-4 py-3 text-center">
               <button
                 onclick="toggleModal('modal-dx-{{ pat.id }}')"
-                class="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg transition"
-              >
-                Initiate Diagnose
-              </button>
+                class="inline-flex items-center gap-2 bg-teal-500 hover:bg-teal-600 text-white font-medium px-4 py-2 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-teal-300 transition-all duration-200"
+              ><i class="fas fa-stethoscope"></i> Diagnose</button>
             </td>
           </tr>
           {% endfor %}
@@ -72,19 +88,17 @@
 {% for pat in patients %}
 <div
   id="modal-dx-{{ pat.id }}"
-  class="fixed inset-0 hidden items-center justify-center bg-black bg-opacity-50 z-50"
+  class="fixed inset-0 hidden items-center justify-center backdrop-blur-sm bg-black bg-opacity-60 z-50 p-4"
 >
-  <div class="bg-gray-800 rounded-lg w-full max-w-lg p-6 shadow-xl space-y-6">
+  <div class="bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg p-8 space-y-6 transform transition-transform duration-300">
     <!-- Modal Header -->
-    <div class="flex justify-between items-center">
+    <div class="flex justify-between items-center border-b border-gray-700 pb-2">
       <h2 class="text-2xl font-semibold text-white">Diagnose Patient</h2>
       <button
         onclick="toggleModal('modal-dx-{{ pat.id }}')"
-        class="text-gray-400 hover:text-gray-200"
+        class="text-gray-400 hover:text-gray-200 focus:outline-none"
         aria-label="Close"
-      >
-        <i class="fas fa-times fa-lg"></i>
-      </button>
+      ><i class="fas fa-times fa-lg"></i></button>
     </div>
 
     <!-- Patient Info -->
@@ -93,39 +107,79 @@
       <div><strong>Age:</strong> {{ pat.age }}</div>
       <div><strong>Gender:</strong> {{ pat.get_gender_display }}</div>
       <div><strong>Current:</strong> {{ pat.diagnosis }}</div>
+      <div><strong>Confidence:</strong>
+        {% if pat.confidence is not None %}
+          {{ pat.confidence|to_percentage }}
+        {% else %}
+          N/A
+        {% endif %}
+      </div>
     </div>
 
     <!-- Upload & Diagnose Form -->
-    <form method="post" enctype="multipart/form-data" class="space-y-4">
+    <form method="post" enctype="multipart/form-data"
+      class="space-y-6 diagnose-form">
       {% csrf_token %}
       <input type="hidden" name="diagnose_patient" value="1"/>
       <input type="hidden" name="patient_id"     value="{{ pat.id }}"/>
 
-      <label for="{{ pat.form.xray_image.id_for_label }}" class="block text-gray-300">
+      <label for="{{ pat.form.xray_image.id_for_label }}" class="block text-gray-300 font-medium">
         Chest X-ray Image
       </label>
-      {{ pat.form.xray_image }}
-      {% if pat.form.xray_image.errors %}
-        <p class="text-red-500 text-sm mt-1">{{ pat.form.xray_image.errors }}</p>
-      {% endif %}
+      <div class="flex items-center gap-4">
+        {{ pat.form.xray_image }}
 
-      <div class="flex justify-end space-x-3 mt-4">
+        {% if pat.form.xray_image.errors %}
+          <p class="text-red-500 text-sm">{{ pat.form.xray_image.errors }}</p>
+        {% endif %}
+      </div>
+
+      <!-- History Timeline -->
+      <div class="mt-6">
+        <h3 class="text-lg font-semibold text-white mb-2">History</h3>
+        {% if pat.history_list %}
+          <ul class="space-y-4 max-h-56 overflow-y-auto text-gray-200">
+            {% for record in pat.history_list %}
+              <li class="bg-gray-700 rounded-lg p-4 flex items-center space-x-4 hover:bg-gray-600 transition-colors">
+                {% if record.xray_image %}
+                  <img src="{{ record.xray_image.url }}" alt="X-ray {{ forloop.counter }}" class="h-16 w-16 rounded border border-gray-600 object-cover"/>
+                {% else %}
+                  <div class="h-16 w-16 rounded bg-gray-600 flex items-center justify-center">
+                    <i class="fas fa-x-ray text-gray-400"></i>
+                  </div>
+                {% endif %}
+                <div>
+                  <p class="text-sm font-mono text-gray-400">{{ record.diagnosed_at|date:"Y-m-d H:i" }} &rarr;</p>
+                  <p class="font-medium">{{ record.label }} <span class="text-xs text-gray-400">({{ record.confidence|to_percentage }})</span></p>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-gray-400 italic">No previous diagnoses.</p>
+        {% endif %}
+      </div>
+
+      <div class="flex justify-end space-x-3 mt-6">
         <button
           type="button"
           onclick="toggleModal('modal-dx-{{ pat.id }}')"
-          class="px-4 py-2 bg-gray-700 text-gray-200 rounded-lg hover:bg-gray-600 transition"
+          class="px-4 py-2 bg-gray-700 text-gray-200 rounded-lg hover:bg-gray-600 transition-shadow shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-500"
         >Cancel</button>
         <button
           type="submit"
-          class="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition"
-        >Diagnose</button>
+          class="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 shadow-md focus:outline-none focus:ring-2 focus:ring-teal-300 transition-shadow flex items-center justify-center"
+    
+        ><span class="btn-text">Confirm Diagnose</span>
+        <i class="fas fa-spinner fa-spin ml-2 btn-spinner hidden"></i>
+      </button>
       </div>
-    </form>
+      </form>
+    </div>
   </div>
-</div>
-{% endfor %}
+  {% endfor %}
 
-<script>
+  <script>
 // Toggle modal visibility
 function toggleModal(id) {
   const el = document.getElementById(id);
@@ -140,5 +194,32 @@ function filterTable() {
     row.classList.toggle('hidden', !row.textContent.toLowerCase().includes(q));
   });
 }
+
+document.querySelectorAll('.diagnose-form').forEach(form => {
+  form.addEventListener('submit', () => {
+    const btn      = form.querySelector('button[type="submit"]');
+    const txt      = btn.querySelector('.btn-text');
+    const spinner  = btn.querySelector('.btn-spinner');
+
+    // disable double‐click
+    btn.disabled = true;
+    // swap text + show spinner
+    txt.textContent = 'Diagnosing…';
+    spinner.classList.remove('hidden');
+  });
+});
+
+// find all toasts and schedule their fade-out+removal
+const container = document.getElementById('toast-container');
+  if (container) {
+    // After 10s, fade out container (and its kids) over 0.5s, then remove it
+    setTimeout(() => {
+      container.classList.add('opacity-0');
+      setTimeout(() => container.remove(), 500);
+    }, 5000);
+  }
+
+
+  
 </script>
 {% endblock %}

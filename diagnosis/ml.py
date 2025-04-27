@@ -1,47 +1,84 @@
 # diagnosis/ml.py
 
-import torchvision.transforms as T
-from ultralytics import YOLO
-from PIL import Image
-from django.conf import settings
 import os
+import numpy as np
+from PIL import Image
+from ultralytics import YOLO
+from django.conf import settings
 
-# 1) Path to your weights file: PROJECT_ROOT/ml_models/yolov11.pt
-WEIGHTS_PATH = os.path.join(settings.BASE_DIR, 'ml_models', 'yolov11.pt')
+# —————————————————————————————————————————————
+# Configuration
+# —————————————————————————————————————————————
+# Path to your YOLO weights file
+WEIGHTS_PATH = os.path.join(settings.BASE_DIR, 'ml_models', 'best.pt')
 
-# 2) Load model once at import time
+# Load the model once at import time
 MODEL = YOLO(WEIGHTS_PATH)
 
-# 3) Preprocessing transforms
-TRANSFORMS = T.Compose([
-    T.Resize((640, 640)),
-    T.ToTensor(),
-    T.Normalize(mean=[0.485, 0.456, 0.406],
-                std=[0.229, 0.224, 0.225]),
-])
+# PTB labels to look for (normalized to lowercase + spaces)
+PTB_LABELS = {'pleural effusion', 'cavity'}
+
+# Per‐run confidence threshold (low to catch faint detections)
+BASE_CONF_THRESH = 0.3
+
+# Final decision threshold on boosted confidence
+DECISION_THRESH = 0.5
+
+# Exponent for power‐law boosting (<1 boosts mid‐range scores)
+BOOST_GAMMA = 0.6
+
+# Small linear boost factor after gamma
+CONF_BOOST_FACTOR = 1.1
+
 
 def run_ai_model(image_file):
     """
-    Runs inference on a PIL-uploaded image file.
-    Returns one of: 'No Findings', 'PTB', or 'Pending'.
+    Runs test‐time augmentation (TTA) + YOLO inference on the uploaded X-ray.
+    Returns a tuple (label, confidence):
+      - ('No Findings', 1.0) if no PTB cues in any TTA run
+      - ('PTB', boosted_conf) if boosted best confidence >= DECISION_THRESH
+      - ('No Findings', boosted_conf) otherwise
     """
-    # Open & convert to RGB
+    # 1) Open image as PIL once
     img = Image.open(image_file).convert('RGB')
-    # Transform & add batch dimension
-    tensor = TRANSFORMS(img).unsqueeze(0)  # [1,C,H,W]
 
-    # Run YOLO inference
-    results = MODEL.predict(source=tensor, conf=0.25, device='cpu')
-    det = results[0]
+    # 2) Define a small suite of augmentations
+    tta_fns = [
+        lambda x: x,
+        lambda x: x.transpose(Image.FLIP_LEFT_RIGHT),
+        lambda x: x.rotate(10, expand=False),
+        lambda x: x.rotate(-10, expand=False),
+        # (you can add more photometric augs here)
+    ]
 
-    # No boxes → No Findings
-    if det.boxes.shape[0] == 0:
-        return 'No Findings'
+    # 3) Run inference on each augmented image and record best PTB confidence
+    confs = []
+    for fn in tta_fns:
+        aug = fn(img)
+        results = MODEL.predict(source=aug, conf=BASE_CONF_THRESH, device='cpu')
+        det = results[0]
 
-    # Check for PTB class (assumes class index 0 → PTB)
-    classes = det.boxes.cls.cpu().numpy().astype(int)
-    if 0 in classes:
-        return 'PTB'
+        run_best = 0.0
+        # iterate boxes to find PTB labels
+        for cid, cf in zip(det.boxes.cls.cpu().numpy(),
+                           det.boxes.conf.cpu().numpy()):
+            lbl = results[0].names[int(cid)].lower().replace('_', ' ')
+            if lbl in PTB_LABELS:
+                run_best = max(run_best, float(cf))
+        confs.append(run_best)
 
-    # Otherwise fallback
-    return 'Pending'
+    # 4) If absolutely no PTB seen => No Findings @ 100%
+    if all(c == 0.0 for c in confs):
+        return 'No Findings', 1.0
+
+    # 5) Otherwise take the single best confidence
+    best = float(np.max(confs))
+
+    # 6) Apply gamma (power‐law) & linear boost, clamp to 1.0
+    boosted = min(best ** BOOST_GAMMA * CONF_BOOST_FACTOR, 1.0)
+
+    # 7) Final decision
+    if boosted >= DECISION_THRESH:
+        return 'PTB', boosted
+    return 'No Findings', boosted
+    
