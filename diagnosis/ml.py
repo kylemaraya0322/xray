@@ -9,76 +9,78 @@ from django.conf import settings
 # —————————————————————————————————————————————
 # Configuration
 # —————————————————————————————————————————————
-# Path to your YOLO weights file
-WEIGHTS_PATH = os.path.join(settings.BASE_DIR, 'ml_models', 'best.pt')
+WEIGHTS_PATH     = os.path.join(settings.BASE_DIR, 'ml_models', 'best.pt')
+MODEL            = YOLO(WEIGHTS_PATH)
 
-# Load the model once at import time
-MODEL = YOLO(WEIGHTS_PATH)
+# the two pathology classes we care about (normalized)
+TARGET_LABELS    = {'cavity', 'pleural effusion'}
 
-# PTB labels to look for (normalized to lowercase + spaces)
-PTB_LABELS = {'pleural effusion', 'cavity'}
-
-# Per‐run confidence threshold (low to catch faint detections)
-BASE_CONF_THRESH = 0.3
-
-# Final decision threshold on boosted confidence
-DECISION_THRESH = 0.5
-
-# Exponent for power‐law boosting (<1 boosts mid‐range scores)
-BOOST_GAMMA = 0.6
-
-# Small linear boost factor after gamma
-CONF_BOOST_FACTOR = 1.1
-
+# your thresholds & boosting parameters
+BASE_CONF_THRESH = 0.3    # filter out very low confidences
+DECISION_THRESH  = 0.5    # boosted must reach this to call pathology
+BOOST_GAMMA      = 0.6    # power-law exponent
+CONF_BOOST_FACTOR= 1.1    # small linear boost after gamma
 
 def run_ai_model(image_file):
     """
-    Runs test‐time augmentation (TTA) + YOLO inference on the uploaded X-ray.
-    Returns a tuple (label, confidence):
-      - ('No Findings', 1.0) if no PTB cues in any TTA run
-      - ('PTB', boosted_conf) if boosted best confidence >= DECISION_THRESH
-      - ('No Findings', boosted_conf) otherwise
+    Runs test-time augmentation + YOLO inference on the uploaded X-ray.
+    Returns (label, confidence) where label ∈ {"Cavity","Pleural Effusion","No Findings"}.
     """
-    # 1) Open image as PIL once
+
+    # 1) load image once
     img = Image.open(image_file).convert('RGB')
 
-    # 2) Define a small suite of augmentations
+    # 2) small TTA: identity, flip, slight rotations
     tta_fns = [
         lambda x: x,
         lambda x: x.transpose(Image.FLIP_LEFT_RIGHT),
-        lambda x: x.rotate(10, expand=False),
+        lambda x: x.rotate(10,  expand=False),
         lambda x: x.rotate(-10, expand=False),
-        # (you can add more photometric augs here)
     ]
 
-    # 3) Run inference on each augmented image and record best PTB confidence
-    confs = []
+    # 3) gather per-run best confidences for each class
+    cav_confs = []
+    eff_confs = []
+
     for fn in tta_fns:
         aug = fn(img)
         results = MODEL.predict(source=aug, conf=BASE_CONF_THRESH, device='cpu')
         det = results[0]
 
-        run_best = 0.0
-        # iterate boxes to find PTB labels
+        best_cav = 0.0
+        best_eff = 0.0
+
+        # inspect each box
         for cid, cf in zip(det.boxes.cls.cpu().numpy(),
                            det.boxes.conf.cpu().numpy()):
-            lbl = results[0].names[int(cid)].lower().replace('_', ' ')
-            if lbl in PTB_LABELS:
-                run_best = max(run_best, float(cf))
-        confs.append(run_best)
+            lbl = results[0].names[int(cid)].lower().replace('_',' ')
+            if lbl == 'cavity':
+                best_cav = max(best_cav, float(cf))
+            elif lbl == 'pleural effusion':
+                best_eff = max(best_eff, float(cf))
 
-    # 4) If absolutely no PTB seen => No Findings @ 100%
-    if all(c == 0.0 for c in confs):
+        cav_confs.append(best_cav)
+        eff_confs.append(best_eff)
+
+    # 4) if nothing seen at all, return clean
+    if max(cav_confs + eff_confs) == 0.0:
         return 'No Findings', 1.0
 
-    # 5) Otherwise take the single best confidence
-    best = float(np.max(confs))
+    # 5) pick the raw best per class across TTA
+    raw_cav = float(np.max(cav_confs))
+    raw_eff = float(np.max(eff_confs))
 
-    # 6) Apply gamma (power‐law) & linear boost, clamp to 1.0
-    boosted = min(best ** BOOST_GAMMA * CONF_BOOST_FACTOR, 1.0)
+    # 6) boost them
+    boosted_cav = min(raw_cav ** BOOST_GAMMA * CONF_BOOST_FACTOR, 1.0)
+    boosted_eff = min(raw_eff ** BOOST_GAMMA * CONF_BOOST_FACTOR, 1.0)
 
-    # 7) Final decision
-    if boosted >= DECISION_THRESH:
-        return 'PTB', boosted
-    return 'No Findings', boosted
-    
+    # 7) make decision
+    if boosted_cav < DECISION_THRESH and boosted_eff < DECISION_THRESH:
+        # neither strong enough
+        return 'No Findings', max(boosted_cav, boosted_eff)
+
+    # otherwise pick whichever is stronger
+    if boosted_cav > boosted_eff:
+        return 'Cavity', boosted_cav
+    else:
+        return 'Effusion', boosted_eff

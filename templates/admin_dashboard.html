@@ -1,16 +1,140 @@
 {% extends "dashboard_base.html" %}
+{% load static %}
+
 {% block title %}Admin Dashboard{% endblock %}
 {% block header_title %}Admin Dashboard{% endblock %}
 
 {% block content %}
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-  <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
-    <h3 class="text-lg font-semibold text-green-400 mb-2">Total Patients</h3>
-    <p class="text-4xl font-bold text-white">123</p>
+<div class="flex justify-between items-center mb-6 no-print">
+  <h2 class="text-2xl font-semibold text-gray-800">Overview</h2>
+  <button onclick="window.print()"
+          class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow transition">
+    <i class="fas fa-download"></i>
+    <span>Download / Print</span>
+  </button>
+</div>
+
+<!-- Summary Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+  {% for card in summary_cards %}
+    <div class="bg-white rounded-lg shadow hover:shadow-lg transition p-6 flex flex-col items-center text-center">
+      <i class="fas fa-{{ card.icon }} text-3xl text-{{ card.color }}-500 mb-2"></i>
+      <h3 class="text-lg font-medium text-gray-700">{{ card.title }}</h3>
+      <p class="mt-2 text-3xl font-bold text-gray-900">{{ card.count }}</p>
+      <a href="{% url card.url %}"
+         class="mt-4 inline-block text-sm font-medium text-{{ card.color }}-600 hover:underline">
+        Manage →
+      </a>
+    </div>
+  {% endfor %}
+</div>
+
+<!-- Charts Section -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+  <!-- Trend Line Chart -->
+  <div class="bg-white rounded-lg shadow p-6">
+    <h3 class="text-xl font-semibold text-gray-800 mb-4">7-Day Diagnosis Trend</h3>
+    <canvas id="diagTrendChart" class="w-full h-56"></canvas>
+    {{ diag_labels|json_script:"trendLabels" }}
+    {{ diag_data|json_script:"trendData" }}
   </div>
-  <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
-    <h3 class="text-lg font-semibold text-green-400 mb-2">Pending Diagnoses</h3>
-    <p class="text-4xl font-bold text-white">45</p>
+  <!-- Distribution Pie Chart -->
+  <div class="bg-white rounded-lg shadow p-6">
+    <h3 class="text-xl font-semibold text-gray-800 mb-4">Diagnosis Distribution</h3>
+    <canvas id="diagDistChart" class="w-full h-56"></canvas>
+    {{ diag_dist_labels|json_script:"distLabels" }}
+    {{ diag_dist_data|json_script:"distData" }}
   </div>
 </div>
+
+<!-- Employee Status Bar Chart -->
+<div class="bg-white rounded-lg shadow p-6 mb-8">
+  <h3 class="text-xl font-semibold text-gray-800 mb-4">Employee Status</h3>
+  <canvas id="empStatusChart" class="w-full h-56"></canvas>
+  {{ emp_status_labels|json_script:"empLabels" }}
+  {{ emp_status_data|json_script:"empData" }}
+</div>
+
+<!-- Recent Activity Tables -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="bg-white rounded-lg shadow p-4">
+    <h4 class="font-semibold text-gray-700 mb-3">Recent Employees</h4>
+    <ul class="divide-y">
+      {% for e in recent_emps %}
+        <li class="py-2 flex justify-between">
+          <span>{{ e.first_name }} {{ e.last_name }}</span>
+          <span class="text-xs text-gray-500">{{ e.employee_id }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="bg-white rounded-lg shadow p-4">
+    <h4 class="font-semibold text-gray-700 mb-3">Recent Patients</h4>
+    <ul class="divide-y">
+      {% for p in recent_pats %}
+        <li class="py-2 flex justify-between">
+          <span>{{ p.first_name }} {{ p.last_name }}</span>
+          <span class="text-xs text-gray-500">{{ p.patient_id }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="bg-white rounded-lg shadow p-4">
+    <h4 class="font-semibold text-gray-700 mb-3">Recent Diagnoses</h4>
+    <ul class="divide-y">
+      {% for d in recent_diags %}
+        <li class="py-2">
+          <div class="flex justify-between">
+            <span>{{ d.patient.first_name }} {{ d.patient.last_name }} — {{ d.diagnosis }}</span>
+            <span class="text-xs text-gray-500">{{ d.diagnosed_at|date:"M d, Y H:i" }}</span>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+
+<!-- Chart.js Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // Trend Line
+  const tLabels = JSON.parse(document.getElementById('trendLabels').textContent);
+  const tData   = JSON.parse(document.getElementById('trendData').textContent);
+  new Chart(document.getElementById('diagTrendChart'), {
+    type: 'line',
+    data: { labels: tLabels, datasets: [{ label:'Diagnoses', data:tData, borderColor:'#3B82F6', tension:0.4 }] },
+    options: { scales:{ y:{ beginAtZero:true }}}
+  });
+
+  // Pie Distribution
+  const dLabels = JSON.parse(document.getElementById('distLabels').textContent);
+  const dData   = JSON.parse(document.getElementById('distData').textContent);
+  new Chart(document.getElementById('diagDistChart'), {
+    type: 'pie',
+    data: {
+      labels: dLabels,
+      datasets:[{ data:dData,
+                  backgroundColor:['#10B981','#FBBF24','#EF4444'] }]
+    }
+  });
+
+  // Bar Employee Status
+  const eLabels = JSON.parse(document.getElementById('empLabels').textContent);
+  const eData   = JSON.parse(document.getElementById('empData').textContent);
+  new Chart(document.getElementById('empStatusChart'), {
+    type: 'bar',
+    data: {
+      labels: eLabels,
+      datasets:[{ label:'Employees', data:eData, backgroundColor:'#06B6D4' }]
+    },
+    options:{ scales:{ y:{ beginAtZero:true } } }
+  });
+</script>
+
+<style>
+  @media print {
+    aside, header, footer, .no-print { display: none !important; }
+    canvas { page-break-inside: avoid; }
+  }
+</style>
 {% endblock %}

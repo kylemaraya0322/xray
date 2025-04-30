@@ -57,6 +57,23 @@
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
       border: 1px solid #e2e8f0;
     }
+    @media print {
+      /* hide the sidebar, header, footer, and any no-print markers */
+      #sidebar,
+      header,
+      footer,
+      .no-print {
+        display: none !important;
+      }
+      main {
+        margin: 0;
+        padding: 0;
+      }
+      /* keep charts intact */
+      canvas {
+        page-break-inside: avoid;
+      }
+    }
   </style>
 </head>
 <body>
@@ -96,23 +113,45 @@
           <i class="fas fa-robot text-xl w-12 flex-shrink-0"></i>
           <span class="menu-text expanded">AI Diagnosis</span>
         </a>
-        <a href="#" class="flex items-center space-x-2 p-5 rounded-md hover:bg-gray-700">
-          <i class="fas fa-cog text-xl w-12 flex-shrink-0"></i>
-          <span class="menu-text expanded">Settings</span>
-        </a>
+        
       </nav>
+
+
 
       <div class="px-2 py-5 border-t border-gray-700">
         {% if user.is_authenticated %}
-        <form method="post" action="{% url 'logout' %}">
-          {% csrf_token %}
-          <button type="submit" class="w-full flex items-center px-3 py-2 rounded hover:bg-gray-700">
-            <i class="fas fa-sign-out-alt text-xl w-10 flex-shrink-0 text-gray-400"></i>
-            <span class="menu-text expanded ml-6">Logout</span>
-          </button>
-        </form>
+          <form method="get" action="#">
+            <button
+              type="button"
+              class="w-full flex items-center px-3 py-2 rounded-lg bg-gray-700 border-2 border-green-500  transition-colors"
+            >
+              <div class="h-10 w-10 rounded-full bg-gray-600 flex items-center justify-center">
+                <i class="fas fa-user text-xl w-10 flex-shrink-0 text-gray-400"></i>
+              </div>
+              <div class="ml-6 text-left">
+                <span class="menu-text expanded block text-white">
+                  {{ user.get_full_name|default:user.username }}
+                </span>
+                <p class="text-gray-400 text-xs">
+                  {{ user.email }}
+                </p>
+              </div>
+            </button>
+          </form>
+      
+          <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button
+              type="submit"
+              class="w-full flex items-center px-3 py-2 rounded hover:bg-gray-700 transition-colors"
+            >
+              <i class="fas fa-sign-out-alt text-xl w-10 flex-shrink-0 text-gray-400"></i>
+              <span class="menu-text expanded ml-6">Logout</span>
+            </button>
+          </form>
         {% endif %}
       </div>
+      
     </aside>
 
     <!-- Header -->

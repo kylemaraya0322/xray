@@ -1,22 +1,22 @@
 from django.shortcuts       import render, redirect, get_object_or_404
 from django.contrib         import messages
-from patient.models         import Patient
+from django.urls            import reverse
+from datetime               import datetime
 from .forms                 import DiagnosisForm
 from .ml                    import run_ai_model
+from patient.models         import Patient
 from .models                import DiagnosisRecord
 
 def diagnosis_list(request):
-    # 1) Load all patients and attach an empty form to each
+    # Attach a prefixed form + history + last_record to each patient
     patients = list(Patient.objects.order_by('last_name'))
-    forms    = {p.id: DiagnosisForm(prefix=str(p.id)) for p in patients}
     for p in patients:
-        p.form = forms[p.id]
-        # preload history
-        p.history_list = p.history.all()  # requires related_name='history'
+        p.form         = DiagnosisForm(prefix=str(p.id))
+        p.history_list = p.history.all()
+        p.last_record  = p.history_list.first()  # newest, because your model orders by -diagnosed_at
 
-    # 2) Handle new diagnosis submissions
     if request.method == 'POST' and 'diagnose_patient' in request.POST:
-        pid  = request.POST.get('patient_id')
+        pid  = request.POST['patient_id']
         pat  = get_object_or_404(Patient, pk=pid)
         form = DiagnosisForm(request.POST, request.FILES, prefix=str(pid))
 
@@ -24,19 +24,19 @@ def diagnosis_list(request):
             img         = form.cleaned_data['xray_image']
             label, conf = run_ai_model(img)
 
-            # Update Patient
+            # update patient
             pat.diagnosis  = label
             pat.confidence = conf
             pat.save()
 
-            # Record in history (saving the exact uploaded image)
-            record = DiagnosisRecord(
-                patient    = pat,
-                label      = label,
-                confidence = conf,
-                xray_image = img
+            # record history
+            record = DiagnosisRecord.objects.create(
+                patient      = pat,
+                label        = label,
+                confidence   = conf,
+                xray_image   = img,
+                diagnosed_at = datetime.now()
             )
-            record.save()
 
             messages.success(
                 request,
@@ -44,11 +44,44 @@ def diagnosis_list(request):
             )
             return redirect('diagnosis_list')
 
-        # if invalid, rebind form and re-render
-        forms[pat.id] = form
-        pat.form      = form
+        # rebind invalid form so errors show
+        pat.form = form
 
     return render(request, 'diagnosis/index.html', {
-        'patients'   : patients,
+        'patients':    patients,
         'active_page': 'diagnosis',
     })
+
+
+
+def report_view(request, pk):
+    """
+    Render a printable report for a single DiagnosisRecord,
+    with more detailed, TB‐specific language for effusion and cavity.
+    """
+    record  = get_object_or_404(DiagnosisRecord, pk=pk)
+    patient = record.patient
+
+    # Build a detailed findings list based on label
+    if record.label == 'Effusion':
+        findings = ["Pleural effusion"]
+        impression = "Possible Pulmonary Tuberculosis"
+
+    elif record.label == 'Cavity':
+        findings = ["Cavity"]
+        impression = "Possible Pulmonary Tuberculosis"
+
+    else:  # 'No Findings' or other
+        findings = ["No findings"]
+        impression = "Normal"
+
+
+    context = {
+        'record':     record,
+        'patient':    patient,
+        'findings':   findings,
+        'impression': impression,
+        'generated':  datetime.now(),
+    }
+    return render(request, 'diagnosis/report.html', context)
+
