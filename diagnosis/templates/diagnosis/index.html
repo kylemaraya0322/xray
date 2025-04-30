@@ -28,23 +28,26 @@
   {# Header & search #}
   <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
     <div>
-      <h1 class="text-3xl font-semibold text-gray-400">AI Diagnosis</h1>
-      <p class="text-gray-400 mt-1">Upload an X-ray for PTB screening</p>
+      <h1 class="text-5xl font-bold text-white pb-4">AI Diagnosis Overview</h1>
+      <p class="text-gray-400">Implement initial diagnosis using artificial intelligence</p>
+      <div class="w-32 h-1 bg-teal-500 mt-2 rounded-full"></div>
     </div>
-    <div class="relative w-full md:w-64">
-      <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
-        <i class="fas fa-search"></i>
-      </span>
+    <div class="relative mb-6 max-w-md">
       <input
         id="searchInput"
         type="text"
         placeholder="Search patients..."
         onkeyup="filterTable()"
-        class="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-700 text-gray-200
-               placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-400
-               transition-shadow shadow-sm"
+        class="w-full bg-gray-800 text-gray-200 placeholder-gray-500 rounded-full pl-4 pr-12 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
       />
+      <button
+        type="button"
+        class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-200"
+      >
+        <i class="fas fa-search fa-lg"></i>
+      </button>
     </div>
+    
   </div>
 
   {# Patients table #}
@@ -60,7 +63,7 @@
             <th class="px-4 py-3 text-center text-xs font-semibold uppercase">Action</th>
           </tr>
         </thead>
-        <tbody id="tableBody" class="bg-gray-700 divide-y divide-gray-600">
+        <tbody id="tableBody" class="bg-[#0D1117] divide-y divide-gray-600">
           {% for pat in patients %}
           <tr class="hover:bg-gray-600 transition-colors duration-200">
             <td class="px-4 py-3 truncate">
@@ -73,8 +76,8 @@
               <span class="px-2 py-1 text-xs rounded-full font-medium
                 {% if pat.diagnosis == 'No Findings' %}bg-green-600 text-white{% endif %}
                 {% if pat.diagnosis == 'Cavity'      %}bg-red-600   text-white{% endif %}
-                {% if pat.diagnosis == 'Effusion'    %}bg-red-600   text-white{% endif %}
-                {% if pat.diagnosis == 'Pending'     %}bg-gray-500 text-white{% endif %}">
+                {% if pat.diagnosis == 'Effusion'    %}bg-orange-600   text-white{% endif %}
+                {% if pat.diagnosis == 'Pending'     %}bg-yellow-600 text-gray-900{% endif %}">
                 {{ pat.diagnosis }}
               </span>
             </td>

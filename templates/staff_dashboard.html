@@ -6,21 +6,21 @@
 
 {% block content %}
 <div class="flex justify-between items-center mb-6 no-print">
-  <h2 class="text-2xl font-semibold text-gray-800">Overview</h2>
+  <h1 class="text-5xl font-bold text-white pb-4">Overview of Patient Status and Progress</h1>
   <button onclick="window.print()"
-          class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow transition">
+          class="inline-flex items-center space-x-2 bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded shadow transition">
     <i class="fas fa-download"></i>
-    <span>Download / Print</span>
+    <span class="font-semibold">Generate & Print</span>
   </button>
 </div>
 
 <!-- Summary Cards -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
   {% for card in summary_cards %}
-    <div class="bg-white rounded-lg shadow hover:shadow-lg transition p-6 text-center">
+    <div class="bg-[#0D1117] border border-{{ card.color }}-600 rounded-lg shadow hover:shadow-lg transition p-6 text-center">
       <i class="fas fa-{{ card.icon }} text-3xl text-{{ card.color }}-500 mb-2"></i>
-      <h3 class="text-lg font-medium text-gray-700">{{ card.title }}</h3>
-      <p class="mt-2 text-3xl font-bold text-gray-900">{{ card.count }}</p>
+      <h3 class="text-lg font-medium text-white">{{ card.title }}</h3>
+      <p class="mt-2 text-3xl font-bold text-white">{{ card.count }}</p>
       <a href="{% url card.url %}" class="mt-4 inline-block text-sm font-medium text-{{ card.color }}-600 hover:underline">
         Manage →
       </a>
@@ -29,8 +29,8 @@
 </div>
 
 <!-- Trend Chart -->
-<div class="bg-white rounded-lg shadow p-6 mb-8">
-  <h3 class="text-xl font-semibold text-gray-800 mb-4">7-Day Diagnosis Trend</h3>
+<div class="bg-[#0D1117] rounded-lg shadow p-6 mb-8">
+  <h3 class="text-xl font-semibold text-white mb-4">7-Day Diagnosis Trend</h3>
   <canvas id="staffTrendChart" class="w-full h-56"></canvas>
   {{ diag_labels|json_script:"staffTrendLabels" }}
   {{ diag_data|json_script:"staffTrendData" }}
@@ -38,21 +38,21 @@
 
 <!-- Recent Activity -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-  <div class="bg-white rounded-lg shadow p-4">
-    <h4 class="font-semibold text-gray-700 mb-2">Recent Patients</h4>
+  <div class="bg-[#0D1117] rounded-lg shadow p-4">
+    <h4 class="font-semibold text-white mb-2">Recent Patients</h4>
     <ul class="divide-y">
       {% for p in recent_pats %}
-        <li class="py-2">{{ p.first_name }} {{ p.last_name }}</li>
+        <li class="py-2 text-white">{{ p.first_name }} {{ p.last_name }}</li>
       {% endfor %}
     </ul>
   </div>
-  <div class="bg-white rounded-lg shadow p-4">
-    <h4 class="font-semibold text-gray-700 mb-2">Recent Diagnoses</h4>
+  <div class="bg-[#0D1117] rounded-lg shadow p-4">
+    <h4 class="font-semibold text-white mb-2">Recent Diagnoses</h4>
     <ul class="divide-y">
       {% for d in recent_diags %}
-        <li class="py-2">
+        <li class="py-2 text-white">
           {{ d.patient.first_name }} {{ d.patient.last_name }} — {{ d.diagnosis }}<br>
-          <span class="text-xs text-gray-500">{{ d.diagnosed_at|date:"M d, Y H:i" }}</span>
+          <span class="text-xs text-white">{{ d.diagnosed_at|date:"M d, Y H:i" }}</span>
         </li>
       {% endfor %}
     </ul>
@@ -61,22 +61,59 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  const sLabels = JSON.parse(document.getElementById('staffTrendLabels').textContent);
-  const sData   = JSON.parse(document.getElementById('staffTrendData').textContent);
-  new Chart(document.getElementById('staffTrendChart'), {
-    type: 'line',
-    data: {
-      labels: sLabels,
-      datasets:[{
-        label:'Diagnoses',
-        data:sData,
-        borderColor:'#10B981',
-        tension:0.4,
-        fill:false
-      }]
+const sLabels = JSON.parse(document.getElementById('staffTrendLabels').textContent);
+const sData   = JSON.parse(document.getElementById('staffTrendData').textContent);
+
+new Chart(document.getElementById('staffTrendChart'), {
+  type: 'line',
+  data: {
+    labels: sLabels,
+    datasets: [{
+      label: 'Diagnoses',
+      data: sData,
+      borderColor: '#10B981',       // green-500
+      backgroundColor: '#10B981',
+      tension: 0.4,
+      fill: false
+    }]
+  },
+  options: {
+    layout: {
+      padding: {
+        top: 20 // spacing between legend and chart
+      }
     },
-    options:{ scales:{ y:{ beginAtZero:true }}}
-  });
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          color: '#ffffff',
+          stepSize: 2,
+          precision: 0
+        },
+        grid: {
+          color: '#ffffff22'
+        }
+      },
+      x: {
+        ticks: {
+          color: '#ffffff'
+        },
+        grid: {
+          color: '#ffffff22'
+        }
+      }
+    },
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          color: '#ffffff'
+        }
+      }
+    }
+  }
+});
 </script>
 
 <style>

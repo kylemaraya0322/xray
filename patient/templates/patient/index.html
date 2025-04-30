@@ -2,19 +2,20 @@
 {% block title %}Patients{% endblock %}
 {% block header_title %}Patients{% endblock %}
 {% block content %}
+{% load widget_tweaks %}
 
 
-<div class="p-8 bg-gray-900 min-h-screen">
+<div class="p-8 bg-[#0D1117] min-h-screen">
   <!-- Header + Add Patient Button -->
   <div class="flex justify-between items-center mb-8">
     <div>
-      <h1 class="text-4xl font-bold text-white">Patient Monitoring Overview</h1>
-      <p class="mt-1 text-gray-400">Manage patient statuses and information</p>
+      <h1 class="text-5xl font-bold text-white pb-4">Patient Monitoring Overview</h1>
+      <p class="text-gray-400">Manage patient statuses and information</p>
       <div class="w-32 h-1 bg-teal-500 mt-2 rounded-full"></div>
     </div>
-    <button onclick="openModal('modal-create')" class="flex items-center space-x-2 bg-teal-500 hover:bg-teal-600 text-white px-5 py-2 rounded-full shadow-lg">
+    <button onclick="openModal('modal-create')" class="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded">
       <i class="fas fa-plus"></i>
-      <span>Add Patient</span>
+      <span class="font-semibold">Add Patient</span>
     </button>
   </div>
 
@@ -30,29 +31,40 @@
 
   <!-- CREATE Modal -->
   <div id="modal-create" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-75 hidden z-50">
-    <div class="bg-gray-800 rounded-xl w-full max-w-lg p-8 shadow-xl">
-      <h2 class="text-2xl font-semibold text-white mb-6">Add New Patient</h2>
-      <form method="post">
+    <div class="bg-[#0D1117] rounded-lg p-10 w-full max-w-2xl min-h-[500px] transform scale-95 opacity-100 transition-all shadow-xl">
+      <h2 class="text-4xl font-bold text-white pb-4">Add New Patient</h2>
+      <form method="post" class="space-y-6">
         {% csrf_token %}
         <input type="hidden" name="create_patient" value="1">
+  
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {% for field in create_form.visible_fields %}
-          <div>
-            <label for="{{ field.id_for_label }}" class="block text-gray-300 mb-1">{{ field.label }}</label>
-            {{ field }}
-            {% if field.errors %}
-            <p class="text-red-500 text-sm mt-1">{{ field.errors }}</p>
+            {% if field.name in 'diagnosis patient_id age' %}
+              <div class="hidden">
+                {{ field }}
+              </div>
+            {% else %}
+              <div class="flex flex-col space-y-1">
+                <label for="{{ field.id_for_label }}" class="text-gray-300 text-sm font-medium">{{ field.label }}</label>
+                {{ field|add_class:"w-full bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 appearance-none custom-datepicker" }}
+                {% if field.errors %}
+                  <p class="text-red-500 text-xs">{{ field.errors }}</p>
+                {% endif %}
+              </div>
             {% endif %}
-          </div>
           {% endfor %}
         </div>
-        <div class="mt-8 flex justify-end space-x-4">
+  
+        <!-- Action Buttons -->
+        <div class="flex justify-end space-x-2">
           <button type="button" onclick="closeModal('modal-create')" class="px-5 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg">Cancel</button>
-          <button type="submit" class="px-5 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg">Save</button>
+          <button type="submit" class="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg">Save</button>
         </div>
       </form>
     </div>
   </div>
+  
+  
 
   <!-- Patients Table -->
   <div class="overflow-x-auto bg-gray-800 rounded-xl shadow-lg">
@@ -64,10 +76,10 @@
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Age</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Gender</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Diagnosis</th>
-          <th class="px-6 py-3"></th>
+          <th class="px-8 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
         </tr>
       </thead>
-      <tbody class="bg-gray-800 divide-y divide-gray-700">
+      <tbody class="bg-[#0D1117] divide-y divide-gray-700">
         {% for pat in patients %}
         <tr class="hover:bg-gray-700 transition">
           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-200">{{ pat.patient_id }}</td>
@@ -76,19 +88,19 @@
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-200">{{ pat.get_gender_display }}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm">
             {% if pat.diagnosis == 'No Findings' %}
-              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-600 text-white">
                 Normal
               </span>
             {% elif pat.diagnosis == 'Pending' %}
-              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-600 text-gray-900">
                 Pending
               </span>
             {% elif pat.diagnosis == 'Cavity' %}
-              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-600 text-white">
                 Cavity
               </span>
             {% elif pat.diagnosis == 'Effusion' %}
-              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-teal-800">
+              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-orange-600 text-white">
                 Effusion
               </span>
             {% else %}
@@ -98,46 +110,60 @@
             {% endif %}
           </td>
           
-          <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+          <td class="px-8 py-4 whitespace-nowrap text-left text-sm font-medium">
             <!-- EDIT Modal Trigger -->
-            <button onclick="openModal('modal-edit-{{ pat.id }}')" class="text-teal-400 hover:text-teal-300 mx-1"><i class="fas fa-edit fa-lg"></i></button>
+            <button onclick="openModal('modal-edit-{{ pat.id }}')" class="text-blue-400 hover:text-blue-600 mx-1"><i class="fas fa-edit fa-lg"></i></button>
             <!-- DELETE Modal Trigger -->
-            <button onclick="openModal('modal-delete-{{ pat.id }}')" class="text-red-500 hover:text-red-400 mx-1"><i class="fas fa-trash-alt fa-lg"></i></button>
+            <button onclick="openModal('modal-delete-{{ pat.id }}')" class="text-red-400 hover:text-red-600 mx-1"><i class="fas fa-trash-alt fa-lg"></i></button>
           </td>
         </tr>
 
         <!-- EDIT Modal -->
         <div id="modal-edit-{{ pat.id }}" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-75 hidden z-50">
-          <div class="bg-gray-800 rounded-xl w-full max-w-lg p-8 shadow-xl">
-            <h2 class="text-2xl font-semibold text-white mb-6">Edit Patient</h2>
-            <form method="post">
+          <div class="bg-[#0D1117] rounded-lg p-10 w-full max-w-2xl min-h-[500px] transform scale-95 opacity-100 transition-all shadow-xl">
+            <h2 class="text-4xl font-bold text-white pb-4">Edit Patient</h2>
+            <form method="post" class="space-y-6">
               {% csrf_token %}
               <input type="hidden" name="edit_patient" value="1">
               <input type="hidden" name="patient_id" value="{{ pat.id }}">
+        
+              <!-- Form Fields Grid -->
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {% for field in pat.form.visible_fields %}
-                <div>
-                  <label for="{{ field.id_for_label }}" class="block text-gray-300 mb-1">{{ field.label }}</label>
-                  {{ field }}
-                  {% if field.errors %}
-                  <p class="text-red-500 text-sm mt-1">{{ field.errors }}</p>
+                  {% if field.name in 'diagnosis patient_id age' %}
+                    <div class="hidden">
+                      {{ field }}
+                    </div>
+                  {% else %}
+                    <div class="flex flex-col space-y-1">
+                      <label for="{{ field.id_for_label }}" class="text-gray-300 text-sm font-medium">{{ field.label }}</label>
+                      {{ field|add_class:"w-full bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 appearance-none custom-datepicker" }}
+                      {% if field.errors %}
+                        <p class="text-red-500 text-xs">{{ field.errors }}</p>
+                      {% endif %}
+                    </div>
                   {% endif %}
-                </div>
                 {% endfor %}
               </div>
-              <div class="mt-8 flex justify-end space-x-4">
+        
+              <!-- Action Buttons -->
+              <div class="flex justify-end space-x-4 pt-4">
                 <button type="button" onclick="closeModal('modal-edit-{{ pat.id }}')" class="px-5 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg">Cancel</button>
-                <button type="submit" class="px-5 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg">Update</button>
+                <button type="submit" class="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg">Update</button>
               </div>
             </form>
           </div>
-        </div>
+        </div>        
 
         <!-- DELETE Modal -->
         <div id="modal-delete-{{ pat.id }}" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-75 hidden z-50">
-          <div class="bg-gray-800 rounded-xl w-full max-w-sm p-6 shadow-lg text-gray-200">
-            <h3 class="text-xl font-semibold mb-4">Confirm Deletion</h3>
-            <p>Are you sure you want to delete <strong>{{ pat.first_name }} {{ pat.last_name }}</strong>?</p>
+          <div class="bg-[#0d1117] rounded-xl w-full max-w-sm p-6 shadow-lg text-gray-200">
+            <h2 class="text-2xl mb-4">
+              <span class="text-white"> Confirm</span>
+              <span class="text-red-500 font-bold">Deletion</span>
+              <span class="text-white">?</span>
+            </h2>
+            <p class="text-gray-300 mb-6">Are you sure you want to delete the records of <span class="font-semibold text-white">{{ pat.first_name }} {{ pat.last_name }}</span>? This action cannot be undone.</p> 
             <form method="post" class="mt-6 flex justify-end space-x-4">
               {% csrf_token %}
               <input type="hidden" name="delete_patient" value="1">

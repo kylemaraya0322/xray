@@ -3,6 +3,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Employee
 from .forms  import EmployeeForm
+from django.contrib import messages
+from django.shortcuts import redirect, render
 
 def employee_list(request):
     employees   = list(Employee.objects.order_by('employee_id'))
@@ -15,6 +17,8 @@ def employee_list(request):
             form = EmployeeForm(request.POST, request.FILES)
             if form.is_valid():
                 form.save()
+                # Added alert message
+                messages.success(request, "Employee created successfully!")
                 return redirect('employee_list')
             else:
                 print("⚠️ CREATE form invalid:", form.errors)
@@ -25,6 +29,8 @@ def employee_list(request):
             form = EmployeeForm(request.POST, request.FILES, instance=emp)
             if form.is_valid():
                 form.save()
+                # Added alert message
+                messages.info(request, "Employee updated successfully!")
                 return redirect('employee_list')
             else:
                 print("⚠️ EDIT form invalid:", form.errors) 
@@ -34,6 +40,8 @@ def employee_list(request):
             eid = request.POST['employee_id']
             emp = get_object_or_404(Employee, pk=eid)
             emp.delete()
+            # Added alert message
+            messages.error(request, "Employee deleted successfully!")
             return redirect('employee_list')
 
     return render(request, 'employee/index.html', {
@@ -41,3 +49,5 @@ def employee_list(request):
         'create_form': create_form,
         'active_page': 'employees',
     })
+
+
