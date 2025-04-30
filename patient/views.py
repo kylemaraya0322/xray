@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
 from .models import Patient
 from .forms import PatientForm
 
@@ -21,6 +22,8 @@ def patient_list(request):
             form = PatientForm(request.POST)
             if form.is_valid():
                 form.save()
+                # Added alert message
+                messages.success(request, "Patient added successfully!")
                 return redirect('patient_list')
             create_form = form
 
@@ -31,6 +34,8 @@ def patient_list(request):
             form = PatientForm(request.POST, instance=pat)
             if form.is_valid():
                 form.save()
+                # Added alert message
+                messages.info(request, "Patient updated successfully!")
                 return redirect('patient_list')
             # Rebind form with validation errors
             pat.form = form
@@ -40,6 +45,8 @@ def patient_list(request):
             pid = request.POST.get('patient_id')
             pat = get_object_or_404(Patient, pk=pid)
             pat.delete()
+            # Added alert message
+            messages.error(request, "Patient deleted successfully!")
             return redirect('patient_list')
 
     return render(request, 'patient/index.html', {

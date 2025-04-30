@@ -6,10 +6,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Dashboard{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Alpine.js for your flash-message toast -->
+  <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="icon" href="{% static 'images/blessed.svg' %}" type="image/svg+xml" sizes="any" />
   <link rel="shortcut icon" href="{% static 'images/blessed.svg' %}" />
   <style>
+    /*Custom style for select dropdown arrow*/
+    select.custom-select {
+    background-image: url("data:image/svg+xml,%3Csvg height='20' viewBox='0 0 20 20' width='20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5.516 7.548l4.487 4.617 4.487-4.617L15.5 9.06 10 14.75 4.5 9.06z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1.5rem center;
+    background-size: 1rem;
+    }
+
+    /* Change date icon to white */
+    input[type="date"].custom-datepicker::-webkit-calendar-picker-indicator {
+    background: url("data:image/svg+xml,%3Csvg fill='white' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10h2v2H7zm4 0h2v2h-2zm4 0h2v2h-2z'/%3E%3Cpath d='M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6c0-1.11-.89-2-2-2zm0 16H5V9h14v11z'/%3E%3C/svg%3E") no-repeat center;
+    color: transparent;
+    opacity: 1;
+    width: 1.25rem;
+    height: 1.25rem;
+    cursor: pointer;
+  }
+
     /* Original sidebar transitions preserved */
     .sidebar-transition { transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1); }
     .menu-text {
@@ -28,28 +48,33 @@
       display: grid;
       grid-template-columns: auto 1fr;
       grid-template-rows: auto 1fr auto;
+      min-height: 100vh;
       height: 100vh;
     }
     .sidebar {
       grid-row: 1 / 4;
-      border-right: 1px solid #e2e8f0;
+      border-right: 1px solid #151B23;
       box-shadow: 4px 0 6px -4px rgba(0, 0, 0, 0.05) inset;
-      background: #1e293b;
+      background: #0D1117;
     }
     .header {
       grid-column: 2;
-      border-bottom: 1px solid #e2e8f0;
-      background: linear-gradient(to right, #f8fafc 0%, white 64px);
+      border-bottom: 1px solid #0D1117;
+      /*background: linear-gradient(to right, #f8fafc 0%, white 64px);*/
+      background: #0D1117;
       z-index: 10;
     }
     .main-content {
       grid-column: 2;
-      background: #f8fafc;
-    }
+      background: #0D1117;
+      min-height: 0;
+      overflow-y: auto;
+    } 
     .footer {
       grid-column: 2;
-      border-top: 1px solid #e2e8f0;
-      background: linear-gradient(to right, #f8fafc 0%, white 64px);
+      border-top: 1px solid #151B23;
+      /*background: linear-gradient(to right, #f8fafc 0%, white 64px);*/
+      background: #0D1117;
     }
     .content-card {
       background: white;
@@ -77,6 +102,94 @@
   </style>
 </head>
 <body>
+  <!-- Alert Messages -->
+  {# Flash messages #}
+  {% if messages %}
+    <div class="fixed top-4 right-4 space-y-2 z-50">
+      {% for msg in messages %}
+
+        {% if 'success' in msg.tags %}
+          {% with bg="bg-green-100 border-l-4 border-green-400 text-green-700" icon="fas fa-check-circle" %}
+            <div
+              x-data="{ show: true }"
+              x-init="setTimeout(() => show = false, 4000)"
+              x-show="show"
+              x-transition
+              class="flex items-center justify-between px-4 py-3 rounded shadow {{ bg }}"
+            >
+              <div class="flex items-center space-x-2">
+                <i class="{{ icon }} text-lg"></i>
+                <span class="flex-1">{{ msg }}</span>
+              </div>
+              <button @click="show = false" class="ml-4 focus:outline-none">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          {% endwith %}
+
+        {% elif 'info' in msg.tags %}
+          {% with bg="bg-blue-100 border-l-4 border-blue-400 text-blue-700" icon="fas fa-info-circle" %}
+            <div
+              x-data="{ show: true }"
+              x-init="setTimeout(() => show = false, 4000)"
+              x-show="show"
+              x-transition
+              class="flex items-center justify-between px-4 py-3 rounded shadow {{ bg }}"
+            >
+              <div class="flex items-center space-x-2">
+                <i class="{{ icon }} text-lg"></i>
+                <span class="flex-1">{{ msg }}</span>
+              </div>
+              <button @click="show = false" class="ml-4 focus:outline-none">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          {% endwith %}
+
+        {% elif 'error' in msg.tags %}
+          {% with bg="bg-red-100 border-l-4 border-red-400 text-red-700" icon="fas fa-times-circle" %}
+            <div
+              x-data="{ show: true }"
+              x-init="setTimeout(() => show = false, 4000)"
+              x-show="show"
+              x-transition
+              class="flex items-center justify-between px-4 py-3 rounded shadow {{ bg }}"
+            >
+              <div class="flex items-center space-x-2">
+                <i class="{{ icon }} text-lg"></i>
+                <span class="flex-1">{{ msg }}</span>
+              </div>
+              <button @click="show = false" class="ml-4 focus:outline-none">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          {% endwith %}
+
+        {% else %}
+          {% with bg="bg-gray-100 border-l-4 border-gray-400 text-gray-700" icon="fas fa-info-circle" %}
+            <div
+              x-data="{ show: true }"
+              x-init="setTimeout(() => show = false, 4000)"
+              x-show="show"
+              x-transition
+              class="flex items-center justify-between px-4 py-3 rounded shadow {{ bg }}"
+            >
+              <div class="flex items-center space-x-2">
+                <i class="{{ icon }} text-lg"></i>
+                <span class="flex-1">{{ msg }}</span>
+              </div>
+              <button @click="show = false" class="ml-4 focus:outline-none">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          {% endwith %}
+        {% endif %}
+
+      {% endfor %}
+    </div>
+  {% endif %}
+
+    
   <div class="layout-container">
     <!-- Sidebar (100% original markup preserved) -->
     <aside id="sidebar" class="sidebar flex flex-col sidebar-transition w-64 overflow-hidden text-gray-100">
@@ -89,7 +202,7 @@
           <i class="fas fa-bars text-xl"></i>
         </button>
         <button id="expandBtn" class="hidden focus:outline-none">
-          <img src="{% static 'images/blessed.svg' %}" alt="ProHealth Logo" class="h-12 w-12" />
+          <img src="{% static 'images/blessed.svg' %}" alt="ProHealth Logo" class="h-12 w-12 mr-2" />
         </button>
       </div>
 
@@ -118,19 +231,19 @@
 
 
 
-      <div class="px-2 py-5 border-t border-gray-700">
+      <div class="px-2 py-5 border-t border-gray-700 space-y-2">
         {% if user.is_authenticated %}
           <form method="get" action="#">
             <button
               type="button"
-              class="w-full flex items-center px-3 py-2 rounded-lg bg-gray-700 border-2 border-green-500  transition-colors"
+              class="w-full flex items-center px-3 py-2 rounded-lg transition-colors"
             >
               <div class="h-10 w-10 rounded-full bg-gray-600 flex items-center justify-center">
                 <i class="fas fa-user text-xl w-10 flex-shrink-0 text-gray-400"></i>
               </div>
               <div class="ml-6 text-left">
                 <span class="menu-text expanded block text-white">
-                  {{ user.get_full_name|default:user.username }}
+                  {{ user.get_full_name|default:user.username|title }}
                 </span>
                 <p class="text-gray-400 text-xs">
                   {{ user.email }}
@@ -155,20 +268,20 @@
     </aside>
 
     <!-- Header -->
-    <header class="header h-16 flex items-center px-6">
-      <h1 class="text-xl font-semibold text-gray-900 flex-1">
+    <header class="header h-16 flex items-center px-6 border-b border-gray-700">
+      <h1 class="text-xl font-semibold text-white flex-1">
         {% block header_title %}Dashboard Overview{% endblock %}
       </h1>
-      <div class="bg-white border border-gray-200 rounded-full px-3 py-1 text-sm flex items-center">
-        <i class="fas fa-clock mr-2 text-gray-500"></i>
-        <span id="currentTime" class="font-medium text-gray-700"></span>
+      <div class="bg-[#0D1117] rounded-full px-3 py-1 text-sm flex items-center">
+        <i class="fas fa-clock mr-2 text-white"></i>
+        <span id="currentTime" class="font-medium text-white"></span>
       </div>
     </header>
 
     <!-- Main Content -->
     <main class="main-content overflow-auto p-6">
       <div class="max-w-7xl mx-auto">
-        <div class="content-card p-6">
+        <div class="content-card p-6 bg-[#0D1117] border-[#0D1117]">
           {% block content %}
           <h2 class="text-lg font-medium text-gray-900 mb-4">Welcome back, {{ user.username }}</h2>
           <p class="text-gray-600">This is your modernized content area with connected borders.</p>
@@ -192,7 +305,7 @@
     </main>
 
     <!-- Footer -->
-    <footer class="footer py-4 text-center text-sm text-gray-500">
+    <footer class="footer py-4 text-center text-sm text-white">
       &copy; {% now "Y" %} ProHealth Suite. All rights reserved.
     </footer>
   </div>
