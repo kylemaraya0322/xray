@@ -19,3 +19,4 @@ class DiagnosisRecord(models.Model):
 
     def __str__(self):
         return f"{self.diagnosed_at:%Y-%m-%d %H:%M} → {self.label} ({self.confidence*100:.1f}%)"
+
