@@ -5,13 +5,24 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TB Portal</title>
-  <link rel="icon" href="{% static 'images/blessed.svg' %}" type="image/svg+xml" sizes="any" />
-  <link rel="shortcut icon" href="{% static 'images/blessed.svg' %}" />
+  <link
+    rel="icon"
+    href="{% static 'images/blessed.svg' %}"
+    type="image/svg+xml"
+    sizes="any"
+  />
+  <link
+    rel="shortcut icon"
+    href="{% static 'images/blessed.svg' %}"
+  />
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    /* Inter font */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     body { font-family: 'Inter', sans-serif; }
+
+    /* shake animation on invalid */
     @keyframes shake {
       0%,100% { transform: translateX(0) }
       20%,60% { transform: translateX(-8px) }
@@ -23,9 +34,12 @@
 <body class="bg-gradient-to-br from-gray-900 to-gray-800 min-h-screen flex flex-col">
 
   <!-- Loading overlay -->
-  <div id="loading-overlay"
-       class="fixed inset-0 bg-gray-900 bg-opacity-75 flex flex-col items-center justify-center space-y-4 text-white text-lg hidden z-50">
-    <svg class="animate-spin h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+  <div
+    id="loading-overlay"
+    class="fixed inset-0 bg-gray-900 bg-opacity-75 flex flex-col items-center justify-center space-y-4 text-white text-lg hidden z-50"
+  >
+    <svg class="animate-spin h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+         viewBox="0 0 24 24">
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
       <path class="opacity-75" fill="currentColor"
             d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
@@ -35,18 +49,19 @@
 
   <main class="flex flex-1 items-center justify-center px-4">
     <div class="relative max-w-md w-full">
-      <!-- Soft green glow -->
+      <!-- Soft green glow backdrop -->
       <div class="absolute inset-0 bg-green-600 opacity-20 rounded-3xl filter blur-3xl"></div>
-      <!-- Card -->
-      <div id="card"
-           class="relative bg-gray-800/60 backdrop-blur-lg rounded-3xl shadow-xl p-8 space-y-6
-                  opacity-0 transition-opacity duration-500 ease-in-out">
+
+      <div
+        id="card"
+        class="relative bg-gray-800/60 backdrop-blur-lg rounded-3xl shadow-xl p-8 space-y-6
+               opacity-0 transition-opacity duration-500 ease-in-out"
+      >
         <!-- Logo -->
         <div class="flex justify-center">
           <img src="{% static 'images/blessed.svg' %}" alt="Clinic Logo"
                class="w-24 h-24 rounded-full border-4 border-green-500" />
         </div>
-        <!-- Title -->
         <h1 class="text-center text-3xl font-bold text-white">TB PORTAL</h1>
 
         <!-- Dynamic subtitle -->
@@ -62,24 +77,34 @@
           </p>
         {% endif %}
 
-        <!-- Display non-field errors -->
+        <!-- Show non-field errors -->
         {% if form.non_field_errors %}
           <div class="bg-red-700 bg-opacity-50 border-l-4 border-red-500 text-red-100 p-4 rounded">
-            {% for err in form.non_field_errors %}
-              <p>{{ err }}</p>
-            {% endfor %}
+            {% for err in form.non_field_errors %}<p>{{ err }}</p>{% endfor %}
           </div>
         {% endif %}
 
-        <!-- Admin form -->
-        {% if role == 'admin' %}
+        <!-- ROLE SELECTOR -->
+        {% if not role %}
+          <div class="grid grid-cols-2 gap-4">
+            <button id="btn-admin"
+                    class="py-3 bg-green-500 hover:bg-green-600 rounded-lg transition">
+              Admin
+            </button>
+            <button id="btn-staff"
+                    class="py-3 bg-blue-500 hover:bg-blue-600 rounded-lg transition">
+              Staff
+            </button>
+          </div>
+
+        <!-- ADMIN LOGIN FORM -->
+        {% elif role == 'admin' %}
           <form id="admin-login-form"
                 class="login-form space-y-4"
                 method="post"
                 action="{% url 'admin_login' %}"
                 novalidate>
             {% csrf_token %}
-            <input type="hidden" name="next" value="{% url 'admin_dashboard' %}" />
 
             <div>
               <label for="id_username_admin" class="sr-only">Username</label>
@@ -93,7 +118,7 @@
                             focus:border-green-500 focus:ring-2 focus:ring-green-500" />
               {% if form.username.errors %}
                 <p class="text-red-400 text-sm mt-1">
-                  {% for e in form.username.errors %}{{ e }}{% endfor %}
+                  {{ form.username.errors.0 }}
                 </p>
               {% endif %}
             </div>
@@ -107,9 +132,12 @@
                      required
                      class="w-full px-4 py-2 rounded-xl bg-gray-900 border border-gray-700 text-gray-100
                             focus:border-green-500 focus:ring-2 focus:ring-green-500" />
+              <p class="capslock-warning hidden text-yellow-400 text-sm mt-1">
+                Caps Lock is on
+              </p>
               {% if form.password.errors %}
                 <p class="text-red-400 text-sm mt-1">
-                  {% for e in form.password.errors %}{{ e }}{% endfor %}
+                  {{ form.password.errors.0 }}
                 </p>
               {% endif %}
             </div>
@@ -121,20 +149,19 @@
           </form>
           <div class="text-center">
             <a href="{% url 'landing' %}"
-               class="text-sm text-gray-400 hover:text-gray-200">
+               class="text-gray-400 hover:text-gray-200 text-sm">
               ← Back to selection
             </a>
           </div>
 
-        <!-- Staff form -->
-        {% elif role == 'staff' %}
+        <!-- STAFF LOGIN FORM -->
+        {% else %}
           <form id="staff-login-form"
                 class="login-form space-y-4"
                 method="post"
                 action="{% url 'staff_login' %}"
                 novalidate>
             {% csrf_token %}
-            <input type="hidden" name="next" value="{% url 'staff_dashboard' %}" />
 
             <div>
               <label for="id_username_staff" class="sr-only">Username</label>
@@ -148,7 +175,7 @@
                             focus:border-green-500 focus:ring-2 focus:ring-green-500" />
               {% if form.username.errors %}
                 <p class="text-red-400 text-sm mt-1">
-                  {% for e in form.username.errors %}{{ e }}{% endfor %}
+                  {{ form.username.errors.0 }}
                 </p>
               {% endif %}
             </div>
@@ -162,36 +189,26 @@
                      required
                      class="w-full px-4 py-2 rounded-xl bg-gray-900 border border-gray-700 text-gray-100
                             focus:border-green-500 focus:ring-2 focus:ring-green-500" />
+              <p class="capslock-warning hidden text-yellow-400 text-sm mt-1">
+                Caps Lock is on
+              </p>
               {% if form.password.errors %}
                 <p class="text-red-400 text-sm mt-1">
-                  {% for e in form.password.errors %}{{ e }}{% endfor %}
+                  {{ form.password.errors.0 }}
                 </p>
               {% endif %}
             </div>
 
             <button type="submit"
-                    class="w-full py-3 rounded-xl bg-green-500 hover:bg-green-600 transition">
+                    class="w-full py-3 rounded-xl bg-blue-500 hover:bg-blue-600 transition">
               Login as Staff
             </button>
           </form>
           <div class="text-center">
             <a href="{% url 'landing' %}"
-               class="text-sm text-gray-400 hover:text-gray-200">
+               class="text-gray-400 hover:text-gray-200 text-sm">
               ← Back to selection
             </a>
-          </div>
-
-        <!-- Role selection -->
-        {% else %}
-          <div class="grid grid-cols-2 gap-4">
-            <button id="btn-admin"
-                    class="py-3 rounded-xl bg-green-500 hover:bg-green-600 transition">
-              Admin
-            </button>
-            <button id="btn-staff"
-                    class="py-3 rounded-xl bg-green-500 hover:bg-green-600 transition">
-              Staff
-            </button>
           </div>
         {% endif %}
       </div>
@@ -205,18 +222,17 @@
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       // fade in the card
-      document.getElementById('card').classList.remove('opacity-0');
+      setTimeout(() => document.getElementById('card').classList.remove('opacity-0'), 100);
 
-      // handle form submit
+      // shake + loading overlay on submit
       document.querySelectorAll('form.login-form').forEach(form => {
         form.addEventListener('submit', e => {
-          const card = document.getElementById('card');
-          const hasFieldError =
-            !form.querySelectorAll('.text-red-400').length == 0;
+          const hasFieldError = form.querySelectorAll('.text-red-400').length > 0;
           if (hasFieldError) {
             e.preventDefault();
-            card.classList.add('shake');
-            setTimeout(() => card.classList.remove('shake'), 300);
+            const c = document.getElementById('card');
+            c.classList.add('shake');
+            setTimeout(() => c.classList.remove('shake'), 300);
             return;
           }
           document.getElementById('loading-overlay').classList.remove('hidden');
@@ -231,14 +247,14 @@
         location.search = '?role=staff';
       });
 
-      // CapsLock warning
+      // CapsLock detection
       document.querySelectorAll('input[type="password"]').forEach(input => {
         const warning = input.parentElement.querySelector('.capslock-warning');
         input.addEventListener('keyup', e => {
           if (e.getModifierState && e.getModifierState('CapsLock')) {
-            warning?.classList.remove('hidden');
+            warning.classList.remove('hidden');
           } else {
-            warning?.classList.add('hidden');
+            warning.classList.add('hidden');
           }
         });
       });

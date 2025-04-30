@@ -1,52 +1,40 @@
-# xray_project/urls.py
+from django.urls               import path, include
+from django.contrib.auth.views import LogoutView
+from django.conf               import settings
+from django.conf.urls.static   import static
 
-from django.urls            import path, include, reverse
-from django.contrib.auth.views import LoginView, LogoutView
-from django.contrib.auth.forms import AuthenticationForm
-from xray_app               import views
-from django.conf            import settings
-from django.conf.urls.static import static
-
-# —————————————————————————————————————————————
-# Custom login views that carry “role” through errors
-# —————————————————————————————————————————————
-class AdminLoginView(LoginView):
-    template_name           = 'landing.html'
-    authentication_form     = AuthenticationForm
-    redirect_authenticated_user = True
-    extra_context           = {'role': 'admin'}
-    def get_success_url(self):
-        return reverse('admin_dashboard')
-
-class StaffLoginView(LoginView):
-    template_name           = 'landing.html'
-    authentication_form     = AuthenticationForm
-    redirect_authenticated_user = True
-    extra_context           = {'role': 'staff'}
-    def get_success_url(self):
-        return reverse('staff_dashboard')
-
+from xray_app.views import (
+    landing_view,
+    AdminLoginView,
+    StaffLoginView,
+    admin_dashboard,
+    staff_dashboard,
+    home_redirect,
+)
 
 urlpatterns = [
-    # 1) Landing page (choose role)
-    path('', views.landing_view, name='landing'),
+    # 1) Landing & role selector
+    path('',             landing_view,    name='landing'),
 
-    # 2) Login endpoints
-    path('admin-login/', AdminLoginView.as_view(), name='admin_login'),
-    path('staff-login/', StaffLoginView.as_view(), name='staff_login'),
+    # 2) Per-role login endpoints
+    path('login/admin/', AdminLoginView.as_view(), name='admin_login'),
+    path('login/staff/', StaffLoginView.as_view(), name='staff_login'),
 
-    # 3) Dashboards (post-login)
-    path('admin/dashboard/', views.admin_dashboard, name='admin_dashboard'),
-    path('staff/dashboard/', views.staff_dashboard, name='staff_dashboard'),
+    # 3) After login send everyone here → home_redirect will forward to the right dashboard
+    path('dashboard/',   home_redirect,   name='dashboard'),
 
-    # 4) Logout
+    # 4) The actual protected dashboards
+    path('admin/dashboard/', admin_dashboard, name='admin_dashboard'),
+    path('staff/dashboard/', staff_dashboard, name='staff_dashboard'),
+
+    # 5) Standard logout
     path('logout/', LogoutView.as_view(next_page='landing'), name='logout'),
 
-    # 5) App URLs
-    path('employees/',  include('employee.urls')),
-    path('patients/',   include('patient.urls')),
-    path('diagnosis/',  include('diagnosis.urls')),
-    
+    # 6) Your other apps
+    path('employees/', include('employee.urls')),
+    path('patients/',  include('patient.urls')),
+    path("diagnosis/",         include("diagnosis.urls")),
 ]
-# Serve user‐uploaded media in development
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

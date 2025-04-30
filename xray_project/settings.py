@@ -132,11 +132,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
-# if anyone hits @login_required without supplying ?next, send them here:
-LOGIN_URL = 'landing'
 
-# after logout, send them back to landing:
+# When @login_required redirects, send people here
+LOGIN_URL          = 'landing'
+# After a successful login, send them here
+LOGIN_REDIRECT_URL = 'dashboard'
+# After logout
 LOGOUT_REDIRECT_URL = 'landing'
+
+X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 
 MEDIA_URL  = '/media/'

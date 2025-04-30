@@ -19,7 +19,8 @@ class Patient(models.Model):
     DIAGNOSIS_CHOICES = [
         ('Pending', 'Pending'),
         ('No Findings', 'No Findings'),
-        ('PTB', 'PTB'),
+        ('Cavity', 'Cavity'),
+        ('Effusion', 'Effusion'),
     ]
     
     diagnosis      = models.CharField(
